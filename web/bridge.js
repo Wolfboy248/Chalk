@@ -37,16 +37,77 @@ var mathField = MQ.MathField(mathFieldSpan, {
 })
 
 function latexToMathjs(latex) {
-  return latex
+  var fns = ['arcsin','arccos','arctan','asin','acos','atan','sin','cos','tan','sqrt','log','ln','exp'];
+  var placeholders = {};
+
+  // strip backslashes from known functions and protect them
+  var result = latex;
+  fns.forEach(function(fn, i) {
+    var ph = '__FN' + i + '__';
+    placeholders[ph] = fn;
+    result = result.replace(new RegExp('\\\\' + fn, 'g'), ph); // \sin → __FN0__
+    result = result.replace(new RegExp(fn, 'g'), ph);          // bare sin → __FN0__
+  });
+
+  result = result
+    .replace(/\\left\(/g, '(')
+    .replace(/\\right\)/g, ')')
+    .replace(/\\left\[/g, '[')
+    .replace(/\\right\]/g, ']')
     .replace(/\\frac\{([^}]+)\}\{([^}]+)\}/g, '($1)/($2)')
-    .replace(/\\sqrt\{([^}]+)\}/g, 'sqrt($1)')
     .replace(/\\cdot/g, '*')
     .replace(/\\pi/g, 'pi')
     .replace(/\\theta/g, 'theta')
     .replace(/\{/g, '(')
     .replace(/\}/g, ')')
-    .trim();
+    .replace(/([a-zA-Z0-9])([a-zA-Z])/g, '$1*$2')
+    .replace(/([0-9])\s*\(/g, '$1*(')
+    .replace(/\)\s*\(/g, ')*(');
+
+  // restore
+  Object.keys(placeholders).forEach(function(ph) {
+    result = result.replace(new RegExp(ph, 'g'), placeholders[ph]);
+  });
+
+  return result.trim();
 }
+
+
+// function latexToMathjs(latex) {
+//   var result = latex
+//     .replace(/\\left\(/g, '(')
+//     .replace(/\\right\)/g, ')')
+//     .replace(/\\left\[/g, '[')
+//     .replace(/\\right\]/g, ']')
+//     .replace(/\\frac\{([^}]+)\}\{([^}]+)\}/g, '($1)/($2)')
+//     .replace(/\\sqrt\{([^}]+)\}/g, 'sqrt($1)')
+//     .replace(/\\cdot/g, '*')
+//     .replace(/\\pi/g, 'pi')
+//     .replace(/\\theta/g, 'theta')
+//     .replace(/\{/g, '(')
+//     .replace(/\}/g, ')');
+//       // protect known multi-letter names with placeholders before implicit multiply
+//   var fns = ['arcsin','arccos','arctan','asin','acos','atan','sin','cos','tan','sqrt','log','ln','exp','dot','norm','point','pi'];
+//   var placeholders = {};
+//   fns.forEach(function(fn, i) {
+//     var ph = '__' + i + '__';
+//     placeholders[ph] = fn;
+//     result = result.replace(new RegExp(fn, 'g'), ph);
+//   });
+//
+//   // now safe to do implicit multiplication
+//   result = result
+//     .replace(/([a-zA-Z0-9])([a-zA-Z])/g, '$1*$2')
+//     .replace(/([0-9])\s*\(/g, '$1*(')
+//     .replace(/\)\s*\(/g, ')*(');
+//
+//   // restore placeholders
+//   Object.keys(placeholders).forEach(function(ph) {
+//     result = result.replace(new RegExp(ph, 'g'), placeholders[ph]);
+//   });
+//
+//   return result.trim();
+// }
 
 new QWebChannel(qt.webChannelTransport, function(channel) {
   bridge = channel.objects.bridge;
@@ -85,6 +146,7 @@ new QWebChannel(qt.webChannelTransport, function(channel) {
       task.formulas.forEach(function(f, i) {
         try {
           var expr = latexToMathjs(f.latex);
+          console.error(expr);
           if (expr.trim() === '') return;
 
           // check for redefinition
