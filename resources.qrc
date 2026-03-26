@@ -1,0 +1,15 @@
+<RCC>
+  <qresource prefix="/">
+    <file>web/index.html</file>
+    <file>web/jquery.min.js</file>
+    <file>web/math.js</file>
+    <file>web/mathquill.js</file>
+    <file>web/mathquill.css</file>
+    <file>web/styles.css</file>
+    <file>web/font/Symbola.woff2</file>
+    <file>web/font/Symbola.woff</file>
+    <file>web/font/Symbola.ttf</file>
+    <file>web/font/Symbola.otf</file>
+    <file>web/bridge.js</file>
+  </qresource>
+</RCC>

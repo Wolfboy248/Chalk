@@ -1,0 +1,46 @@
+#pragma once
+
+#include <QMainWindow>
+#include <QTextEdit>
+#include <QListWidget>
+#include <types.hpp>
+#include <QObject>
+#include <QVBoxLayout>
+#include <QScrollArea>
+#include "mathinput.hpp"
+#include "navigator.hpp"
+#include "page.hpp"
+
+class Editor : public QMainWindow {
+  Q_OBJECT
+public:
+  Editor(QWidget* parent = nullptr);
+
+public slots:
+  void exportToPdf();
+
+private slots:
+  void onTaskSelected(Task* task);
+
+private:
+  void setupMenu();
+  void setupToolbar();
+  void setupCentralWidget();
+  void setupDocks();
+
+  QWidget* scrollContainer;
+  QVBoxLayout* scrollLayout;
+  QScrollArea* scrollArea;
+  QTextEdit* docEdit;
+  QListWidget* taskNavigator;
+
+  MathInputDock* mathDock;
+  NavigatorWidget* navigator;
+
+  Assignment assignment;
+
+  Task* selectedTask = nullptr;
+
+  std::vector<PageWidget*> pages;
+};
+

@@ -1,0 +1,26 @@
+[
+{
+  "directory": "/home/georgek/dev/c/bettermaths/build",
+  "command": "/usr/bin/c++ -DQT_CORE_LIB -DQT_GUI_LIB -DQT_NETWORK_LIB -DQT_NO_DEBUG -DQT_OPENGL_LIB -DQT_POSITIONING_LIB -DQT_PRINTSUPPORT_LIB -DQT_QMLINTEGRATION_LIB -DQT_QML_LIB -DQT_QUICK_LIB -DQT_WEBCHANNEL_LIB -DQT_WEBENGINECORE_LIB -DQT_WEBENGINEWIDGETS_LIB -DQT_WIDGETS_LIB -I/home/georgek/dev/c/bettermaths/build/betterMaths_autogen/include -I/home/georgek/dev/c/bettermaths/include -isystem /usr/include/qt6/QtCore -isystem /usr/include/qt6 -isystem /usr/lib/qt6/mkspecs/linux-g++ -isystem /usr/include/qt6/QtWidgets -isystem /usr/include/qt6/QtGui -isystem /usr/include/qt6/QtWebEngineWidgets -isystem /usr/include/qt6/QtWebEngineCore -isystem /usr/include/qt6/QtNetwork -isystem /usr/include/qt6/QtQuick -isystem /usr/include/qt6/QtQml -isystem /usr/include/qt6/QtQmlIntegration -isystem /usr/include/qt6/QtOpenGL -isystem /usr/include/qt6/QtWebChannel -isystem /usr/include/qt6/QtPositioning -isystem /usr/include/qt6/QtPrintSupport -mno-direct-extern-access -o CMakeFiles/betterMaths.dir/betterMaths_autogen/mocs_compilation.cpp.o -c /home/georgek/dev/c/bettermaths/build/betterMaths_autogen/mocs_compilation.cpp",
+  "file": "/home/georgek/dev/c/bettermaths/build/betterMaths_autogen/mocs_compilation.cpp",
+  "output": "CMakeFiles/betterMaths.dir/betterMaths_autogen/mocs_compilation.cpp.o"
+},
+{
+  "directory": "/home/georgek/dev/c/bettermaths/build",
+  "command": "/usr/bin/c++ -DQT_CORE_LIB -DQT_GUI_LIB -DQT_NETWORK_LIB -DQT_NO_DEBUG -DQT_OPENGL_LIB -DQT_POSITIONING_LIB -DQT_PRINTSUPPORT_LIB -DQT_QMLINTEGRATION_LIB -DQT_QML_LIB -DQT_QUICK_LIB -DQT_WEBCHANNEL_LIB -DQT_WEBENGINECORE_LIB -DQT_WEBENGINEWIDGETS_LIB -DQT_WIDGETS_LIB -I/home/georgek/dev/c/bettermaths/build/betterMaths_autogen/include -I/home/georgek/dev/c/bettermaths/include -isystem /usr/include/qt6/QtCore -isystem /usr/include/qt6 -isystem /usr/lib/qt6/mkspecs/linux-g++ -isystem /usr/include/qt6/QtWidgets -isystem /usr/include/qt6/QtGui -isystem /usr/include/qt6/QtWebEngineWidgets -isystem /usr/include/qt6/QtWebEngineCore -isystem /usr/include/qt6/QtNetwork -isystem /usr/include/qt6/QtQuick -isystem /usr/include/qt6/QtQml -isystem /usr/include/qt6/QtQmlIntegration -isystem /usr/include/qt6/QtOpenGL -isystem /usr/include/qt6/QtWebChannel -isystem /usr/include/qt6/QtPositioning -isystem /usr/include/qt6/QtPrintSupport -mno-direct-extern-access -o CMakeFiles/betterMaths.dir/src/bridge.cpp.o -c /home/georgek/dev/c/bettermaths/src/bridge.cpp",
+  "file": "/home/georgek/dev/c/bettermaths/src/bridge.cpp",
+  "output": "CMakeFiles/betterMaths.dir/src/bridge.cpp.o"
+},
+{
+  "directory": "/home/georgek/dev/c/bettermaths/build",
+  "command": "/usr/bin/c++ -DQT_CORE_LIB -DQT_GUI_LIB -DQT_NETWORK_LIB -DQT_NO_DEBUG -DQT_OPENGL_LIB -DQT_POSITIONING_LIB -DQT_PRINTSUPPORT_LIB -DQT_QMLINTEGRATION_LIB -DQT_QML_LIB -DQT_QUICK_LIB -DQT_WEBCHANNEL_LIB -DQT_WEBENGINECORE_LIB -DQT_WEBENGINEWIDGETS_LIB -DQT_WIDGETS_LIB -I/home/georgek/dev/c/bettermaths/build/betterMaths_autogen/include -I/home/georgek/dev/c/bettermaths/include -isystem /usr/include/qt6/QtCore -isystem /usr/include/qt6 -isystem /usr/lib/qt6/mkspecs/linux-g++ -isystem /usr/include/qt6/QtWidgets -isystem /usr/include/qt6/QtGui -isystem /usr/include/qt6/QtWebEngineWidgets -isystem /usr/include/qt6/QtWebEngineCore -isystem /usr/include/qt6/QtNetwork -isystem /usr/include/qt6/QtQuick -isystem /usr/include/qt6/QtQml -isystem /usr/include/qt6/QtQmlIntegration -isystem /usr/include/qt6/QtOpenGL -isystem /usr/include/qt6/QtWebChannel -isystem /usr/include/qt6/QtPositioning -isystem /usr/include/qt6/QtPrintSupport -mno-direct-extern-access -o CMakeFiles/betterMaths.dir/src/main.cpp.o -c /home/georgek/dev/c/bettermaths/src/main.cpp",
+  "file": "/home/georgek/dev/c/bettermaths/src/main.cpp",
+  "output": "CMakeFiles/betterMaths.dir/src/main.cpp.o"
+},
+{
+  "directory": "/home/georgek/dev/c/bettermaths/build",
+  "command": "/usr/bin/c++ -DQT_CORE_LIB -DQT_GUI_LIB -DQT_NETWORK_LIB -DQT_NO_DEBUG -DQT_OPENGL_LIB -DQT_POSITIONING_LIB -DQT_PRINTSUPPORT_LIB -DQT_QMLINTEGRATION_LIB -DQT_QML_LIB -DQT_QUICK_LIB -DQT_WEBCHANNEL_LIB -DQT_WEBENGINECORE_LIB -DQT_WEBENGINEWIDGETS_LIB -DQT_WIDGETS_LIB -I/home/georgek/dev/c/bettermaths/build/betterMaths_autogen/include -I/home/georgek/dev/c/bettermaths/include -isystem /usr/include/qt6/QtCore -isystem /usr/include/qt6 -isystem /usr/lib/qt6/mkspecs/linux-g++ -isystem /usr/include/qt6/QtWidgets -isystem /usr/include/qt6/QtGui -isystem /usr/include/qt6/QtWebEngineWidgets -isystem /usr/include/qt6/QtWebEngineCore -isystem /usr/include/qt6/QtNetwork -isystem /usr/include/qt6/QtQuick -isystem /usr/include/qt6/QtQml -isystem /usr/include/qt6/QtQmlIntegration -isystem /usr/include/qt6/QtOpenGL -isystem /usr/include/qt6/QtWebChannel -isystem /usr/include/qt6/QtPositioning -isystem /usr/include/qt6/QtPrintSupport -mno-direct-extern-access -o CMakeFiles/betterMaths.dir/betterMaths_autogen/EWIEGA46WW/qrc_resources.cpp.o -c /home/georgek/dev/c/bettermaths/build/betterMaths_autogen/EWIEGA46WW/qrc_resources.cpp",
+  "file": "/home/georgek/dev/c/bettermaths/build/betterMaths_autogen/EWIEGA46WW/qrc_resources.cpp",
+  "output": "CMakeFiles/betterMaths.dir/betterMaths_autogen/EWIEGA46WW/qrc_resources.cpp.o"
+}
+]

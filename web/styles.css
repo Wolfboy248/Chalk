@@ -1,0 +1,94 @@
+html, body {
+  margin: 0;
+  font-size: 24px;
+  font-family: "Arial";
+}
+
+button {
+  all: unset;
+  border: none;
+  height: 100%;
+  aspect-ratio: 1/1;
+  text-align: center;
+  border-radius: 8px;
+  font-size: 24px;
+}
+
+button:hover {
+  background-color: rgba(0, 0, 0, 0.1);
+  cursor: pointer;
+}
+
+#add-btn {
+  font-weight: bold;
+  font-size: 32px
+}
+
+.header {
+  display: flex;
+  justify-content: space-between;
+  background: rgba(240, 240, 240, 1);
+  width: 100%;
+  box-sizing: border-box;
+  padding: 8px 8px;
+}
+
+#formulas {
+  display: flex;
+  flex-direction: column;
+}
+
+.formula-row {
+  display: flex;
+  width: 100%;
+  max-width: 100%;
+  position: relative;
+}
+
+.formula-row > .input-field {
+  padding: 20px;
+}
+
+.remove-btn {
+  position: absolute;
+  right: 0;
+  top: 0;
+  height: 50%;
+}
+
+.result {
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  margin-bottom: 8px;
+  margin-right: 8px;
+  background-color: rgba(230, 230, 230, 1);
+  border-radius: 2px;
+  padding: 4px 8px;
+  font-size: 12px;
+}
+
+.result.error {
+  opacity: 0;
+}
+
+.result.hidden {
+  opacity: 0;
+}
+
+.input-field {
+  box-sizing: border-box;
+  border-radius: 0;
+  border: 1px solid grey;
+  font-size: 24px;
+  outline: none;
+  flex: 1;
+  max-width: 100%;
+  transition: all 0.2s ease;
+}
+
+.mq-focused {
+  border-color: blue;
+  border-width: 1px; !important
+  outline: none;
+}
