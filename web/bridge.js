@@ -37,13 +37,14 @@ var mathField = MQ.MathField(mathFieldSpan, {
 })
 
 function latexToMathjs(latex) {
-  var fns = ['arcsin','arccos','arctan','asin','acos','atan','sin','cos','tan','sqrt','log','ln','exp'];
+  var fns = ['arcsin','arccos','arctan','asin','acos','atan','sin','cos','tan','sqrt','log','ln','exp','angle'];
   var placeholders = {};
 
   // strip backslashes from known functions and protect them
   var result = latex;
   fns.forEach(function(fn, i) {
-    var ph = '__FN' + i + '__';
+    var ph = '@@FN' + i + '@@';
+    // var ph = '__FN' + i + '__';
     placeholders[ph] = fn;
     result = result.replace(new RegExp('\\\\' + fn, 'g'), ph); // \sin → __FN0__
     result = result.replace(new RegExp(fn, 'g'), ph);          // bare sin → __FN0__
@@ -56,11 +57,14 @@ function latexToMathjs(latex) {
     .replace(/\\right\]/g, ']')
     .replace(/\\frac\{([^}]+)\}\{([^}]+)\}/g, '($1)/($2)')
     .replace(/\\cdot/g, '*')
+    .replace(/\\angle\s*([a-zA-Z])/g, 'angle($1)')
     .replace(/\\pi/g, 'pi')
     .replace(/\\theta/g, 'theta')
     .replace(/\{/g, '(')
     .replace(/\}/g, ')')
-    .replace(/([a-zA-Z0-9])([a-zA-Z])/g, '$1*$2')
+    // .replace(/([a-zA-Z0-9])([a-zA-Z])/g, '$1*$2')
+    .replace(/([a-zA-Z0-9])\s*\(/g, '$1*(')
+    .replace(/\)\s*([a-zA-Z0-9])/g, ')*$1')
     .replace(/([0-9])\s*\(/g, '$1*(')
     .replace(/\)\s*\(/g, ')*(');
 
@@ -237,7 +241,7 @@ function renderTask(task) {
     container.appendChild(row);
 
     var mf = MQ.MathField(mqSpan, {
-      autoCommands: 'pi theta sqrt sum',
+      autoCommands: 'pi theta sqrt sum angle',
       charsThatBreakOutOfSupSub: '+-=<>',
       autoSubscriptNumerals: true,
       autoOperatorNames: 'sin cos tan asin acos atan arcsin arccos arctan',
