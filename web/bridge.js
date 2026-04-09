@@ -37,81 +37,19 @@ var mathField = MQ.MathField(mathFieldSpan, {
 })
 
 function latexToMathjs(latex) {
-  var fns = ['arcsin','arccos','arctan','asin','acos','atan','sin','cos','tan','sqrt','log','ln','exp','angle'];
-  var placeholders = {};
-
-  // strip backslashes from known functions and protect them
-  var result = latex;
-  fns.forEach(function(fn, i) {
-    var ph = '@@FN' + i + '@@';
-    // var ph = '__FN' + i + '__';
-    placeholders[ph] = fn;
-    result = result.replace(new RegExp('\\\\' + fn, 'g'), ph); // \sin → __FN0__
-    result = result.replace(new RegExp(fn, 'g'), ph);          // bare sin → __FN0__
-  });
+  console.log("Input: " + latex);
 
   result = result
-    .replace(/\\left\(/g, '(')
     .replace(/\\right\)/g, ')')
-    .replace(/\\left\[/g, '[')
-    .replace(/\\right\]/g, ']')
-    .replace(/\\frac\{([^}]+)\}\{([^}]+)\}/g, '($1)/($2)')
-    .replace(/\\cdot/g, '*')
-    .replace(/\\angle\s*([a-zA-Z])/g, 'angle($1)')
-    .replace(/\\pi/g, 'pi')
-    .replace(/\\theta/g, 'theta')
-    .replace(/\{/g, '(')
-    .replace(/\}/g, ')')
-    // .replace(/([a-zA-Z0-9])([a-zA-Z])/g, '$1*$2')
-    .replace(/([a-zA-Z0-9])\s*\(/g, '$1*(')
-    .replace(/\)\s*([a-zA-Z0-9])/g, ')*$1')
-    .replace(/([0-9])\s*\(/g, '$1*(')
-    .replace(/\)\s*\(/g, ')*(');
+    .replace(/\\left\(/g, '(')
+    .replace(/\\sin/g, "sin")
+    .replace(/\\pi/g, "pi")
+    .replace(/\\cdot/g, "*")
 
-  // restore
-  Object.keys(placeholders).forEach(function(ph) {
-    result = result.replace(new RegExp(ph, 'g'), placeholders[ph]);
-  });
+  console.log("Output: " + result);
 
   return result.trim();
 }
-
-
-// function latexToMathjs(latex) {
-//   var result = latex
-//     .replace(/\\left\(/g, '(')
-//     .replace(/\\right\)/g, ')')
-//     .replace(/\\left\[/g, '[')
-//     .replace(/\\right\]/g, ']')
-//     .replace(/\\frac\{([^}]+)\}\{([^}]+)\}/g, '($1)/($2)')
-//     .replace(/\\sqrt\{([^}]+)\}/g, 'sqrt($1)')
-//     .replace(/\\cdot/g, '*')
-//     .replace(/\\pi/g, 'pi')
-//     .replace(/\\theta/g, 'theta')
-//     .replace(/\{/g, '(')
-//     .replace(/\}/g, ')');
-//       // protect known multi-letter names with placeholders before implicit multiply
-//   var fns = ['arcsin','arccos','arctan','asin','acos','atan','sin','cos','tan','sqrt','log','ln','exp','dot','norm','point','pi'];
-//   var placeholders = {};
-//   fns.forEach(function(fn, i) {
-//     var ph = '__' + i + '__';
-//     placeholders[ph] = fn;
-//     result = result.replace(new RegExp(fn, 'g'), ph);
-//   });
-//
-//   // now safe to do implicit multiplication
-//   result = result
-//     .replace(/([a-zA-Z0-9])([a-zA-Z])/g, '$1*$2')
-//     .replace(/([0-9])\s*\(/g, '$1*(')
-//     .replace(/\)\s*\(/g, ')*(');
-//
-//   // restore placeholders
-//   Object.keys(placeholders).forEach(function(ph) {
-//     result = result.replace(new RegExp(ph, 'g'), placeholders[ph]);
-//   });
-//
-//   return result.trim();
-// }
 
 new QWebChannel(qt.webChannelTransport, function(channel) {
   bridge = channel.objects.bridge;
@@ -126,13 +64,13 @@ new QWebChannel(qt.webChannelTransport, function(channel) {
   });
 
   bridge.resultsReady.connect(function(json) {
-    console.error(json);
+    // console.log(json);
     renderResults(JSON.parse(json).formulas);
   })
 
   // AI MADE THIS!!!
   bridge.evaluateTask.connect(function(json) {
-    console.error("EVALUATING!!!");
+    console.log("EVALUATING!!!");
     var task = JSON.parse(json);
     var MAX_PASSES = 10;
     var results = task.formulas.map(function(f) {
@@ -150,7 +88,7 @@ new QWebChannel(qt.webChannelTransport, function(channel) {
       task.formulas.forEach(function(f, i) {
         try {
           var expr = latexToMathjs(f.latex);
-          console.error(expr);
+          // console.log(expr);
           if (expr.trim() === '') return;
 
           // check for redefinition
@@ -168,8 +106,8 @@ new QWebChannel(qt.webChannelTransport, function(channel) {
             }
           }
 
-          var val = math.evaluate(expr, scope);
-          results[i].result = math.format(val, { precision: 6 });
+          var val = math.round(math.evaluate(expr, scope), 10);
+          results[i].result = math.format(val, { precision: 10 });
           results[i].error = null;
         } catch(e) {
           // console.error(e.message);
@@ -212,8 +150,11 @@ function renderTask(task) {
   console.log(task);
   var container = document.getElementById('formulas');
   container.innerHTML = '';
-  fields = {};
+  fields = [];
 
+  console.log(task.formulas);
+
+  var index = 0;
   task.formulas.forEach(function(f) {
     console.log(f);
     var row = document.createElement("div");
@@ -270,10 +211,11 @@ function renderTask(task) {
           }
         },
         upOutOf: function() {
-          var ids = Object.keys(fields).map(Number);
-          var nextId = ids[ids.indexOf(f.id) - 1];
+          console.log(fields);
+          var nextId = fields.find(obj => obj.id === f.id);
+          console.log(nextId);
           if (nextId != undefined) {
-            fields[nextId].focus();
+            nextId.focus();
           }
         },
       }
@@ -296,6 +238,7 @@ function renderTask(task) {
 
     mf.latex(f.latex);
     fields[f.id] = mf;
+    console.log(mf);
 
     if (idToFocus == f.id) {
       mf.focus();
@@ -303,6 +246,7 @@ function renderTask(task) {
     }
     if (fields[idToFocus])
       fields[idToFocus].focus();
+    index++;
   })
 }
 
