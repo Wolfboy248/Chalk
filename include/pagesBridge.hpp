@@ -35,6 +35,21 @@ public slots:
     emit updatePages(assignmentToJson(assignment));
   }
 
+  void updateTitle(const QString& title) {
+    if (!assignment) return;
+    assignment->title = title;
+  }
+
+  void updateTaskTitle(int id, const QString& title) {
+    // if (!assignment) return;
+    // for (auto& t : assignment->tasks) {
+    //   if (t->id == id) {
+    //     t->title = title;
+    //     break;
+    //   }
+    // }
+  }
+
 signals:
   void setBgCol(const QString& str);
   void updatePages(const QString& assignmentJson);

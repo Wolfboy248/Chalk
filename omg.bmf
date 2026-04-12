@@ -1,0 +1,65 @@
+{
+  "title" "New Assignment"
+  "version" "0.1.0"  
+
+  tasks {    
+
+    task_0 {
+      "order" "0"
+      "title" "Opgave 4.04"      
+
+      formulas {        
+
+        formula_1 {
+          "latex" "C=90\degree"
+          "order" "0"
+          "result" "90"
+        }
+
+        formula_2 {
+          "latex" "A=47.3\degree"
+          "order" "1"
+          "result" "47.3"
+        }
+
+        formula_4 {
+          "latex" "a=\frac{c}{\sin\left(C\right)}\cdot\sin\left(A\right)"
+          "order" "2"
+          "result" ""
+        }
+
+        formula_5 {
+          "latex" "b=\sqrt{c^2-a^2}"
+          "order" "3"
+          "result" ""
+        }
+
+        formula_6 {
+          "latex" "B=180-C-A"
+          "order" "4"
+          "result" "42.7"
+        }
+      }
+    }
+
+    task_7 {
+      "order" "1"
+      "title" "Task 5"      
+
+      formulas {        
+
+        formula_8 {
+          "latex" "f\left(x\right)=5.3x"
+          "order" "0"
+          "result" ""
+        }
+
+        formula_9 {
+          "latex" "f\left(5\right)"
+          "order" "1"
+          "result" "26.5"
+        }
+      }
+    }
+  }
+}

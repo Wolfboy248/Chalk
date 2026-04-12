@@ -25,6 +25,10 @@ if (useDummyData) {
   renderTask(dummyData);
 }
 
+const cleanDegrees = (expr) => {
+  return expr.replace(/\\degree/g, "");
+}
+
 var mathField = MQ.MathField(mathFieldSpan, {
   handlers: {
     edit: function() {
@@ -39,12 +43,15 @@ var mathField = MQ.MathField(mathFieldSpan, {
 function latexToMathjs(latex) {
   console.log("OMGOMGOMGOGOGOGMG");
   console.log("Input: " + latex);
+  console.log([...latex]);
+  console.log(latex.length);
 
   let result = latex
     .replace(/\\right\)/g, ')')
     .replace(/\\left\(/g, '(')
     .replace(/\\sin/g, "sin")
     .replace(/\\pi/g, "pi")
+    .replace(/\\degree/g, "")
     .replace(/\\cdot/g, "*");
 
   console.log("OMGOMGOGMOGOGMOG22222");
@@ -184,7 +191,7 @@ function renderTask(task) {
     container.appendChild(row);
 
     var mf = MQ.MathField(mqSpan, {
-      autoCommands: 'pi theta sqrt sum angle',
+      autoCommands: 'pi theta sqrt sum angle degree',
       charsThatBreakOutOfSupSub: '+-=<>',
       autoSubscriptNumerals: true,
       autoOperatorNames: 'sin cos tan asin acos atan arcsin arccos arctan',

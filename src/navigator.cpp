@@ -56,43 +56,32 @@ void NavigatorWidget::refresh(int selectedId) {
 }
 
 void NavigatorWidget::setupToolbar() {
-  connect(
-    toolbar->addAction("Add"),
-    &QAction::triggered,
-    this,
-    [&]() {
-      if (!assignment) return;
-      assignment->addTask();
-      refresh(assignment->tasks.size() - 1);
-      // emit taskSelected(&assignment->tasks[assignment->tasks.size() - 1]);
-      emit changed();
+  connect(toolbar->addAction("Add"), &QAction::triggered, this, [&]() {
+    if (!assignment) return;
+    Task* added = assignment->addTask();
+    refresh(added->id);
+    emit changed();
+  });
+
+  connect(toolbar->addAction("Remove"), &QAction::triggered, this, [&]() {
+    if (!assignment || !tree->currentItem()) return;
+    int removedId = tree->currentItem()->data(0, Qt::UserRole).toInt();
+    int removedIndex = tree->indexOfTopLevelItem(tree->currentItem());
+    
+    assignment->removeTask(removedId);
+
+    if (assignment->tasks.empty()) {
+      emit taskSelected(nullptr);
+      refresh(-1);
+    } else {
+      int selectIndex = std::min(removedIndex, (int)assignment->tasks.size() - 1);
+      if (selectIndex < 0) selectIndex = 0;
+      int nextId = assignment->tasks[selectIndex]->id;
+      refresh(nextId);
     }
-  );
-  connect(
-    toolbar->addAction("Remove"),
-    &QAction::triggered,
-    this,
-    [&]() {
-      if (!assignment) return;
-      int index = tree->indexOfTopLevelItem(tree->currentItem());
-      int id = tree->currentItem()->data(0, Qt::UserRole).toInt();
-      if (index == -1) return;
-      assignment->removeTask(tree->currentItem()->data(0, Qt::UserRole).toInt());
-      int nextIndex = id;
-      if (nextIndex >= assignment->tasks.size())
-        nextIndex = assignment->tasks.size() - 1;
-      else if (nextIndex < 0 && assignment->tasks.size() > 0)
-        nextIndex = 0;
-      else if (assignment->tasks.size() == 0) {
-        nextIndex = -1;
-        emit taskSelected(nullptr);
-      }
-        
-      refresh(nextIndex);
-      // emit taskSelected(&assignment->tasks[nextIndex]);
-      emit changed();
-    }
-  );
+
+    emit changed();
+  });
 
   connect(tree, &QTreeWidget::currentItemChanged, [&](QTreeWidgetItem* current, QTreeWidgetItem*) {
     // qDebug() << "Current changed";

@@ -4,6 +4,8 @@ project(betterMaths)
 set(EXE_NAME ${CMAKE_PROJECT_NAME})
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
+add_subdirectory(external/xdf)
+
 set(CMAKE_AUTOMOC ON)
 set(CMAKE_AUTORCC ON)
 set(CMAKE_AUTOUIC ON)
@@ -39,6 +41,7 @@ target_include_directories(${EXE_NAME} PRIVATE
 )
 
 target_link_libraries(${EXE_NAME} PRIVATE
+  XDF
   Qt6::Widgets
   Qt6::WebEngineWidgets
   Qt6::WebChannel

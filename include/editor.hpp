@@ -30,6 +30,8 @@ private:
   void setupCentralWidget();
   void setupDocks();
 
+  void save();
+  void load();
   void test();
 
   QWidget* scrollContainer;
