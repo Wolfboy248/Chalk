@@ -37,15 +37,17 @@ var mathField = MQ.MathField(mathFieldSpan, {
 })
 
 function latexToMathjs(latex) {
+  console.log("OMGOMGOMGOGOGOGMG");
   console.log("Input: " + latex);
 
-  result = result
+  let result = latex
     .replace(/\\right\)/g, ')')
     .replace(/\\left\(/g, '(')
     .replace(/\\sin/g, "sin")
     .replace(/\\pi/g, "pi")
-    .replace(/\\cdot/g, "*")
+    .replace(/\\cdot/g, "*");
 
+  console.log("OMGOMGOGMOGOGMOG22222");
   console.log("Output: " + result);
 
   return result.trim();

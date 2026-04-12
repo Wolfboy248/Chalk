@@ -1,7 +1,11 @@
 #include "mathinput.hpp"
 #include "navigator.hpp"
 #include "page.hpp"
+#include "pagesBridge.hpp"
+#include <pages.hpp>
 #include <editor.hpp>
+
+#include <QTimer>
 
 #include <QApplication>
 #include <QToolBar>
@@ -43,12 +47,17 @@ Editor::Editor(QWidget* parent) : QMainWindow(parent) {
   // exportToPdf();
 }
 
+void Editor::test() {
+  pagesBridge->update();
+}
+
 void Editor::setupMenu() {
   QMenu* fileMenu = menuBar()->addMenu("&File");
   fileMenu->addAction("New");
   fileMenu->addAction("Open...");
   fileMenu->addAction("Save");
   fileMenu->addSeparator();
+  fileMenu->addAction("Update", this, &Editor::test);
   fileMenu->addAction("Export", this, &Editor::exportToPdf);
   fileMenu->addSeparator();
   fileMenu->addAction("Exit", qApp, &QApplication::quit);
@@ -71,41 +80,22 @@ void Editor::setupToolbar() {
 }
 
 void Editor::setupCentralWidget() {
-  QWidget* docContainer = new QWidget(this);
-  QVBoxLayout* docLayout = new QVBoxLayout(docContainer);
-  docLayout->setSpacing(20);
-  docLayout->setAlignment(Qt::AlignHCenter);
-
-  scrollArea = new QScrollArea(this);
-  scrollArea->setWidget(docContainer);
-  scrollArea->setWidgetResizable(true);
-  scrollArea->setAlignment(Qt::AlignHCenter);
-  setCentralWidget(scrollArea);
-
-  PageWidget* firstPage = new PageWidget(docContainer);
-  pages.push_back(firstPage);
-  docLayout->addWidget(firstPage);
-
-  firstPage->layout->setSpacing(20);
-
-  QLineEdit* titleEdit = new QLineEdit(firstPage);
-  titleEdit->setPlaceholderText("Assignment Title");
-  titleEdit->setText(assignment.title);
-  titleEdit->setStyleSheet("font-size: 24px; font-weight: bold; color: #000;");
-  firstPage->layout->addWidget(titleEdit);
-
-  connect(titleEdit, &QLineEdit::textChanged, [&](const QString& text) {
-    assignment.title = text;
+  pagesContainer = new QWebEngineView(this);
+  QWebEngineView* container = pagesContainer;
+  pagesBridge = new PagesBridge(this);
+  PagesBridge* bridge = pagesBridge;
+  QWebChannel* channel = new QWebChannel();
+  channel->registerObject("bridge", bridge);
+  container->page()->setWebChannel(channel);
+  bridge->setAssignment(&assignment);
+  setCentralWidget(container);
+  // container->setUrl(QUrl("qrc:/web/pages.html"));
+  container->setUrl(QUrl::fromLocalFile("/home/georgek/dev/c/bettermaths/web/pages.html"));
+  connect(container, &QWebEngineView::loadFinished, this, [bridge, this]() {
+    bridge->setBg(
+      QWidget::palette().color(QWidget::backgroundRole()).name()
+    );
   });
-
-  // for (int i = 0; i < 2; i++) {
-  //   PageWidget* page = new PageWidget(docContainer);
-  //   pages.push_back(page);
-  // }
-  //
-  // for (auto page : pages) {
-  //   docLayout->addWidget(page);
-  // }
 }
 
 void Editor::setupDocks() {
@@ -134,35 +124,12 @@ void Editor::onTaskSelected(Task* task) {
 }
 
 void Editor::exportToPdf() {
-  if (pages.empty()) return;
-
-  QPrinter printer{QPrinter::HighResolution};
-  printer.setPageSize(QPageSize::A4);
-  printer.setPageOrientation(QPageLayout::Portrait);
-  printer.setFullPage(true);
-  printer.setOutputFormat(QPrinter::PdfFormat);
-  printer.setOutputFileName("assignment.pdf");
-
-  QPainter painter{&printer};
-
-  QRect deviceRect = painter.viewport();
-  double scale = deviceRect.width() / 595.0;
-
-  painter.scale(scale, scale);
-
-  int margin = 40;
-  int y = margin;
-
-  QFont titleFont("Arial", -1, QFont::Bold);
-  titleFont.setPixelSize(24);
-  QRect titleRect{margin, margin, 595 - margin * 2, 100};
-  painter.setFont(titleFont);
-  painter.setPen(QColor(0, 0, 0));
-  painter.drawText(titleRect, Qt::AlignLeft | Qt::TextWordWrap, "Testing!!!");
-
-  painter.setPen(QPen(Qt::black, 2));
-  painter.drawRect(QRect(1, 1, 593, 840));
-
-  painter.end();
+  pagesContainer->page()->runJavaScript(R"(
+    document.body.offsetHeight;
+  )", [this](const QVariant&) {
+    QTimer::singleShot(100, this, [this]() {
+      pagesContainer->page()->printToPdf("output.pdf");
+    });
+  });
 }
 

@@ -3,6 +3,7 @@
 #include <QMainWindow>
 #include <QTextEdit>
 #include <QListWidget>
+#include <qwebengineview.h>
 #include <types.hpp>
 #include <QObject>
 #include <QVBoxLayout>
@@ -10,6 +11,7 @@
 #include "mathinput.hpp"
 #include "navigator.hpp"
 #include "page.hpp"
+#include "pagesBridge.hpp"
 
 class Editor : public QMainWindow {
   Q_OBJECT
@@ -28,11 +30,15 @@ private:
   void setupCentralWidget();
   void setupDocks();
 
+  void test();
+
   QWidget* scrollContainer;
   QVBoxLayout* scrollLayout;
   QScrollArea* scrollArea;
   QTextEdit* docEdit;
   QListWidget* taskNavigator;
+  QWebEngineView* pagesContainer;
+  PagesBridge* pagesBridge;
 
   MathInputDock* mathDock;
   NavigatorWidget* navigator;

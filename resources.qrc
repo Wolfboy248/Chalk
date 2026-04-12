@@ -1,6 +1,7 @@
 <RCC>
   <qresource prefix="/">
     <file>web/index.html</file>
+    <file>web/pages.html</file>
     <file>web/jquery.min.js</file>
     <file>web/math.js</file>
     <file>web/mathquill.js</file>
@@ -11,5 +12,6 @@
     <file>web/font/Symbola.ttf</file>
     <file>web/font/Symbola.otf</file>
     <file>web/bridge.js</file>
+    <file>web/pagesBridge.js</file>
   </qresource>
 </RCC>

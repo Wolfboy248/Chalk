@@ -1,0 +1,60 @@
+body {
+  margin: 0;
+}
+
+::-webkit-scrollbar {
+  width: 8px;
+}
+
+::-webkit-scrollbar:hover {
+  width: 10px;
+}
+
+::-webkit-scrollbar-track {
+  background: #1e1e1e;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #555;
+  border-radius: 5px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #777;
+}
+
+@page {
+  size: A4;
+  margin: 10mm;
+}
+
+#pages {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  /* width: 210mm; */
+  gap: 10mm;
+  scrollbar-width: thin;
+  --scrollbar-width: thin;
+  --scrollbar-width-legacy: 10px;
+}
+
+.page {
+  background: white;
+  width: 210mm;
+  height: 297mm;
+  padding: 20mm;
+  /* margin: 10mm auto; */
+  box-sizing: border-box;
+  overflow: hidden;
+  position: relative;
+}
+
+.page-break {
+  break-before: page;
+}
+
+.task {
+  break-inside: avoid;
+  page-break-inside: avoid;
+}
