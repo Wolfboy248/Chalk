@@ -47,17 +47,35 @@ function latexToMathjs(latex) {
   console.log(latex.length);
 
   let result = latex
+    .replace(/\\ /g, '')
     .replace(/\\right\)/g, ')')
     .replace(/\\left\(/g, '(')
     .replace(/\\sin/g, "sin")
+    .replace(/\\cos/g, "cos")
+    .replace(/\\tan/g, "tan")
     .replace(/\\pi/g, "pi")
-    .replace(/\\degree/g, "")
+    .replace(/\\degree/g, " deg")
+    .replace(/\\frac\{([^}]+)\}\{([^}]+)\}/g, '($1)/($2)')
+    .replace(/\\sqrt\{([^}]+)\}/g, 'sqrt($1)')
+
+    .replace(/([0-9])\s*(ml|l|L|mol|cm|m|kg)/g, "$1 $2")
+
+    .replace(/(\d),(?=\d)/g, '$1.')
+    .replace(/;/g, ',')
+
     .replace(/\\cdot/g, "*");
 
   console.log("OMGOMGOGMOGOGMOG22222");
   console.log("Output: " + result);
 
   return result.trim();
+}
+
+const mathJsResultToLatex = (val) => {
+  let res = val
+    .replace(/ ?deg/g, "\\degree")
+
+  return res;
 }
 
 new QWebChannel(qt.webChannelTransport, function(channel) {
@@ -115,9 +133,49 @@ new QWebChannel(qt.webChannelTransport, function(channel) {
             }
           }
 
-          var val = math.round(math.evaluate(expr, scope), 10);
-          results[i].result = math.format(val, { precision: 10 });
-          results[i].error = null;
+          var val = math.evaluate(expr, scope);
+
+          if (val && val.isUnit) {
+            const formatted = math.format(val, {
+              precision: 4,
+              notation: "auto"
+            });
+
+            const normalizedInput = expr.replace(/\s+/g, '');
+            const normalizedOutput = formatted.replace(/\s+/g, '');
+
+            if (normalizedInput.endsWith(normalizedOutput)) {
+              results[i].result = "";
+              return;
+            }
+
+            console.log(math.format(val, { precision: 4 }));
+            results[i].result = mathJsResultToLatex(
+              math.format(val, {
+                precision: 4,
+                notation: "auto",
+              }).replace(/\./g, ",").replace(/ (?!deg\b)/g, " \\  ")
+            );
+          } else {
+            const formatted = math.format(val, {
+              precision: 4,
+              notation: "auto"
+            });
+
+            const normalizedInput = expr.replace(/\s+/g, '');
+            const normalizedOutput = formatted.replace(/\s+/g, '');
+
+            if (normalizedInput.endsWith(normalizedOutput)) {
+              results[i].result = "";
+              return;
+            }
+            // val = math.round(val, 10);
+            results[i].result = mathJsResultToLatex(math.format(val, { precision: 4 }));
+            // results[i].result = math.format(val, { precision: 4 })
+          }
+
+          // results[i].result = math.format(val, { precision: 10 });
+          // results[i].error = null;
         } catch(e) {
           // console.error(e.message);
           results[i].error = e.message;
@@ -169,6 +227,18 @@ function renderTask(task) {
     var row = document.createElement("div");
     row.className = "formula-row";
 
+    let explanation = document.createElement("div");
+    explanation.className = "explanation";
+    explanation.innerText = f.explanation;
+    explanation.contentEditable = "true";
+
+    explanation.addEventListener("input", () => {
+      console.log(explanation.innerText);
+      bridge.updateExplanation(f.id, explanation.innerText);
+    })
+
+    row.appendChild(explanation);
+
     var mqSpan = document.createElement("span");
     mqSpan.className = "input-field";
     row.appendChild(mqSpan);
@@ -191,7 +261,7 @@ function renderTask(task) {
     container.appendChild(row);
 
     var mf = MQ.MathField(mqSpan, {
-      autoCommands: 'pi theta sqrt sum angle degree',
+      autoCommands: 'pi theta sqrt sum angle degree Updownarrow underline',
       charsThatBreakOutOfSupSub: '+-=<>',
       autoSubscriptNumerals: true,
       autoOperatorNames: 'sin cos tan asin acos atan arcsin arccos arctan',

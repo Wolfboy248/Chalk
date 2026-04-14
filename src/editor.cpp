@@ -164,6 +164,23 @@ void Editor::setupDocks() {
     this,
     &Editor::onTaskSelected
   );
+
+  connect(
+    pagesBridge,
+    &PagesBridge::updatedTaskTitle,
+    this,
+    [&]() {
+      navigator->refresh();
+    }
+  );
+
+  connect(
+    mathDock,
+    &MathInputDock::changed,
+    [&]() {
+      pagesBridge->update();
+    }
+  );
 }
 
 void Editor::onTaskSelected(Task* task) {

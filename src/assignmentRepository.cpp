@@ -22,6 +22,7 @@ void AssignmentRepository::save(const Assignment& assignment, const QString& pat
     for (const auto& f : t->formulas) {
       XDFNode formula{"formula_" + std::to_string(f->id)};
       formula.addValue("latex", f->latex.toStdString());
+      formula.addValue("explanation", f->explanation.toStdString());
       formula.addValue("result", f->result.toStdString());
       formula.addValue("order", std::to_string(j++));
       formulas.append(formula);
@@ -71,10 +72,12 @@ Assignment AssignmentRepository::load(const QString& path) {
 
       for (auto& [_, formula] : ordered) {
         std::string latex = formula.getValues()["latex"];
+        std::string explanation = formula.getValues()["explanation"];
         std::string result = formula.getValues()["result"];
         Formula* f = assignment.addFormula(t);
         f->latex = QString{latex.c_str()};
         f->result = QString{result.c_str()};
+        f->explanation = QString{explanation.c_str()};
       }
     }
   }

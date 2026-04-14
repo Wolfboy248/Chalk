@@ -39,10 +39,10 @@ public slots:
     for (auto& f : mTask->formulas) {
       if (f->id == id) { f->explanation = explanation; break; }
     }
+    emit updatedExplanation();
   }
 
   void addFormula() {
-    qDebug() << "AddING!!!";
     if (!mTask) return;
     auto f = assignment->addFormula(mTask);
     emit focusFormula(f->id);
@@ -104,6 +104,8 @@ signals:
 
   void evaluateTask(const QString& json);
   void resultsReady(const QString& json);
+
+  void updatedExplanation();
 
 private:
   QString taskToJson(Task* task) {

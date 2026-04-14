@@ -100,15 +100,23 @@ const buildBlocks = (assignment) => {
   assignment.tasks.forEach(task => {
     blocks.push({
       type: "task",
+      id: task.id,
       el: createText("h2", task.title)
     });
 
     task.formulas.forEach(f => {
+      if (f.explanation != "" && f.explanation != "\n") {
+        blocks.push({
+          type: "explanation",
+          el: createText("p", f.explanation)
+        })
+      }
+
       const div = document.createElement("div");
       div.className = "formula";
 
       let latex = f.latex;
-      console.log("Result: " + f.result);
+      console.log("Latex: " + f.latex);
       if (f.result != null && f.result != "") {
         const { lhs, rhs } = splitEquation(f.latex);
         if (rhs && hasVariables(rhs)) {
@@ -143,6 +151,10 @@ const paginate = (blocks) => {
   blocks.forEach(block => {
     const h = measureHeight(block.el);
 
+    if (block.type == "title" || block.type == "task") {
+      block.el.contentEditable = "true";
+    }
+
     console.log(h + height);
     console.log(PAGE_HEIGHT);
 
@@ -152,7 +164,20 @@ const paginate = (blocks) => {
       height = 0;
     }
 
-    page.content.appendChild(block.el.cloneNode(true));
+    const clone = block.el.cloneNode(true);
+
+    if (block.type == "title") {
+      clone.addEventListener("input", () => {
+        console.log("WOEOOEOEE");
+        bridge.updateTitle(clone.innerText);
+      })
+    } else if (block.type == "task") {
+      clone.addEventListener("input", () => {
+        bridge.updateTaskTitle(block.id, clone.innerText)
+      })
+    }
+
+    page.content.appendChild(clone);
     height += h;
   });
 

@@ -1,3 +1,4 @@
+#include <filesystem>
 #include <mathinput.hpp>
 
 #include <QWebChannel>
@@ -14,7 +15,24 @@ MathInputDock::MathInputDock(QWidget* parent) : QDockWidget("Math Input", parent
   channel->registerObject("bridge", bridge);
   view->page()->setWebChannel(channel);
 
-  view->setUrl(QUrl("qrc:/web/index.html"));
+  view->setUrl(QUrl::fromLocalFile(
+    QString(
+      (std::filesystem::current_path() / "web/index.html").string().c_str()
+    )
+  ));
+
+  connect(bridge, &Bridge::taskChanged, this, [&]() {
+    emit changed();
+  });
+  connect(bridge, &Bridge::evaluateTask, this, [&]() {
+    emit changed();
+  });
+  connect(bridge, &Bridge::resultsReady, this, [&]() {
+    emit changed();
+  });
+  connect(bridge, &Bridge::updatedExplanation, this, [&]() {
+      emit changed();
+  });
 
   // connect(bridge, &Bridge::updateFormula, this, [&]() {
   //
