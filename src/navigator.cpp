@@ -1,6 +1,7 @@
 #include "navigator.hpp"
 
 #include <QToolBar>
+#include <QFileDialog>
 
 #include <editor.hpp>
 
@@ -60,6 +61,22 @@ void NavigatorWidget::setupToolbar() {
     if (!assignment) return;
     Task* added = assignment->addTask();
     refresh(added->id);
+    emit changed();
+  });
+
+  connect(toolbar->addAction("Add Image"), &QAction::triggered, this, [&] () {
+    if (!assignment) return;
+    if (assignment->tasks.size() == 0) return;
+    Task* currentTask = assignment->tasks[tree->indexOfTopLevelItem(tree->currentItem())].get();
+    QString fileName = QFileDialog::getOpenFileName(
+      this,
+      "Open image",
+      "",
+      "PNG Files (*.png);; JPG Files (*.jpg);; JPEG Files (*.jpeg)"
+    );
+    if (fileName == "") return;
+    assignment->addImage(currentTask, fileName);
+
     emit changed();
   });
 

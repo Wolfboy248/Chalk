@@ -50,11 +50,15 @@ function latexToMathjs(latex) {
     .replace(/\\ /g, '')
     .replace(/\\right\)/g, ')')
     .replace(/\\left\(/g, '(')
+    .replace(/\\arcsin/g, "asin")
     .replace(/\\sin/g, "sin")
+    .replace(/\\arccos/g, "acos")
     .replace(/\\cos/g, "cos")
+    .replace(/\\arctan/g, "atan")
     .replace(/\\tan/g, "tan")
     .replace(/\\pi/g, "pi")
     .replace(/\\degree/g, " deg")
+    // .replace(/\\degree/g, "")
     .replace(/\\frac\{([^}]+)\}\{([^}]+)\}/g, '($1)/($2)')
     .replace(/\\sqrt\{([^}]+)\}/g, 'sqrt($1)')
 
@@ -133,7 +137,51 @@ new QWebChannel(qt.webChannelTransport, function(channel) {
             }
           }
 
+          if (assignMatch) {
+            const varName = assignMatch[1];
+
+            // if result is plain number but came from trig context, treat as angle
+            if (typeof val === "number" && /\b(asin|acos|atan)\b/.test(expr)) {
+              scope[varName] = val; // already converted to unit above
+            } else if (val && val.isUnit) {
+              scope[varName] = val;
+            } else {
+              scope[varName] = val;
+            }
+          }
+
           var val = math.evaluate(expr, scope);
+          assignMatch = expr.match(/^([a-zA-Z][a-zA-Z0-9]*)\s*=/);
+
+          if (typeof val === "number") {
+            if (/\b(asin|acos|atan)\b/.test(expr)) {
+              val = math.unit(val, "rad").toNumber("deg");
+              val = math.unit(val, "deg");
+
+              if (assignMatch) {
+                scope[assignMatch[1]] = val;
+              }
+            }
+          }
+
+          if (typeof val === "number") {
+            if (/\b(asin|acos|atan)\b/.test(expr)) {
+              val = math.unit(val, "rad").toNumber("deg");
+              val = math.unit(val, "deg");
+
+              // IMPORTANT: store converted value in scope
+              if (assignMatch) {
+                scope[assignMatch[1]] = val;
+              }
+            }
+          }
+
+          if (typeof val === "number") {
+            if (/asin|acos|atan/.test(expr)) {
+              val = math.unit(val, "rad").toNumber("deg");
+              val = math.unit(val, "deg");
+            }
+          }
 
           if (val && val.isUnit) {
             const formatted = math.format(val, {
@@ -238,6 +286,26 @@ function renderTask(task) {
     })
 
     row.appendChild(explanation);
+
+    let buttonsContainer = document.createElement("div");
+    buttonsContainer.className = "buttons-container";
+    row.appendChild(buttonsContainer);
+
+    let answerToggleButton = document.createElement("button");
+    answerToggleButton.innerText = "Is Answer";
+    if (f.isAnswer) {
+      answerToggleButton.className = "active";
+    }
+    answerToggleButton.addEventListener("click", () => {
+      bridge.toggleAnswer(f.id);
+      if (f.isAnswer) {
+        answerToggleButton.className = "active";
+      } else {
+        answerToggleButton.className = "";
+      }
+    })
+
+    buttonsContainer.appendChild(answerToggleButton);
 
     var mqSpan = document.createElement("span");
     mqSpan.className = "input-field";

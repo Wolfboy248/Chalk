@@ -41,6 +41,14 @@ const hasVariables = (expr) => {
   return /[a-zA-Z]/.test(expr);
 }
 
+const getPageHeight = () => {
+  const page = createPage();
+  document.body.appendChild(page.page);
+  const height = page.content.getBoundingClientRect().height;
+  document.body.removeChild(page.page);
+  return height;
+}
+
 const createPage = () => {
   const page = document.createElement("div");
   page.className = "page";
@@ -49,10 +57,10 @@ const createPage = () => {
   header.className = "page-header";
 
   const name = document.createElement("div");
-  name.innerText = `Name: Georg Ejvind Karlsen`;
+  name.innerText = `Navn: Georg Ejvind Karlsen`;
 
   const date = document.createElement("div");
-  date.innerText = `Date: ${new Date().toLocaleDateString()}`;
+  date.innerText = `Dato: ${new Date().toLocaleDateString()}`;
 
   header.appendChild(name);
   header.appendChild(date);
@@ -68,19 +76,21 @@ const createPage = () => {
 
 const measureHeight = (el) => {
   probe.innerHTML = "";
-  const clone = el.cloneNode(true);
-  probe.appendChild(clone);
+  // const clone = el.cloneNode(true);
+  probe.appendChild(el);
 
-  const style = window.getComputedStyle(clone);
+  const rect = el.getBoundingClientRect();
+  const style = window.getComputedStyle(el);
 
   const margin =
+    rect.height +
     parseFloat(style.marginTop) +
     parseFloat(style.marginBottom);
 
-  const rectHeight = clone.getBoundingClientRect().height;
+  // const rectHeight = clone.getBoundingClientRect().height;
 
-  console.log(rectHeight + margin);
-  return rectHeight + margin;
+  // console.log(rectHeight + margin);
+  return margin;
 }
 
 const createText = (tag, text) => {
@@ -120,9 +130,21 @@ const buildBlocks = (assignment) => {
       if (f.result != null && f.result != "") {
         const { lhs, rhs } = splitEquation(f.latex);
         if (rhs && hasVariables(rhs)) {
-          latex += "=" + f.result;
+          if (f.isAnswer) {
+            latex += "=\\underline{\\underline{" + f.result + "}}";
+          } else {
+            latex += "=" + f.result;
+          }
         } else if (!rhs) {
-          latex += "=" + f.result;
+          if (f.isAnswer) {
+            latex += "=\\underline{\\underline{" + f.result + "}}";
+          } else {
+            latex += "=" + f.result;
+          }
+        }
+      } else {
+        if (f.isAnswer) {
+          latex = "\\underline{\\underline{" + latex + "}}";
         }
       }
 
@@ -135,28 +157,83 @@ const buildBlocks = (assignment) => {
     });
   });
 
+  blocks.push({
+    type: "bilag",
+    el: createText("h1", "Bilag"),
+  });
+
+  assignment.tasks.forEach(task => {
+    if (task.images.length > 0) {
+      blocks.push({
+        type: "bilag-title",
+        el: createText("h2", task.title),
+      });
+    }
+
+    task.images?.forEach(img => {
+      const wrapper = document.createElement("div");
+      wrapper.className = "image-block";
+
+      const image = document.createElement("img");
+      image.src = `${img.path}`;
+
+      wrapper.appendChild(image);
+
+      blocks.push({
+        type: "image",
+        taskId: task.id,
+        imageId: img.id,
+        el: wrapper
+      });
+    });
+  });
+
   return blocks;
 }
 
-const paginate = (blocks) => {
+const waitForImages = async (el) => {
+  const imgs = el.querySelectorAll("img");
+
+  await Promise.all([...imgs].map(async (img) => {
+    if (!img.src) return;
+
+    if (!img.complete) {
+      await new Promise(res => {
+        img.onload = res;
+        img.onerror = res;
+      });
+    }
+
+    // important: forces real decoding (fixes Qt/WebEngine bugs)
+    if (img.decode) {
+      try { await img.decode(); } catch (e) {}
+    }
+  }));
+};
+
+const paginate = async (blocks) => {
   const pages = [];
 
   let page = createPage();
   let height = 0;
 
-  const PAGE_HEIGHT = 297 * 3.78;
+  const PAGE_HEIGHT = (297 * 3.78) - 100;
 
   pages.push(page);
 
-  blocks.forEach(block => {
-    const h = measureHeight(block.el);
+  for (const block of blocks) {
+    const clone = block.el.cloneNode(true);
+
+    await waitForImages(clone);
+
+    const h = measureHeight(clone);
 
     if (block.type == "title" || block.type == "task") {
       block.el.contentEditable = "true";
     }
 
     console.log(h + height);
-    console.log(PAGE_HEIGHT);
+    console.log(block.type + ": " + block.el.innerText + ": " + h);
 
     if (height + h > PAGE_HEIGHT) {
       page = createPage();
@@ -164,7 +241,7 @@ const paginate = (blocks) => {
       height = 0;
     }
 
-    const clone = block.el.cloneNode(true);
+    // const clone = block.el.cloneNode(true);
 
     if (block.type == "title") {
       clone.addEventListener("input", () => {
@@ -175,11 +252,16 @@ const paginate = (blocks) => {
       clone.addEventListener("input", () => {
         bridge.updateTaskTitle(block.id, clone.innerText)
       })
+    } else if (block.type == "image") {
+      clone.addEventListener("click", () => {
+        console.log("WRAPPER CLICKED");
+        bridge.removeImage(block.taskId, block.imageId);
+      })
     }
 
     page.content.appendChild(clone);
     height += h;
-  });
+  };
 
   return pages;
 }
@@ -190,11 +272,11 @@ const renderLatex = (el, latex) => {
   });
 };
 
-const renderPages = (assignment) => {
+const renderPages = async (assignment) => {
   pagesContainer.innerHTML = "";
 
   const blocks = buildBlocks(assignment);
-  const pages = paginate(blocks);
+  const pages = await paginate(blocks);
 
   pages.forEach(p => {
     pagesContainer.appendChild(p.page);

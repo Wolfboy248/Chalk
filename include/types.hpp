@@ -4,18 +4,26 @@
 #include <vector>
 #include <memory>
 
+struct Image {
+  int id;
+  QString path;
+  QString caption;
+};
+
 struct Formula {
   int id;
   QString latex;
   QString explanation;
   QString result;
   QString error;
+  bool isAnswer = false;
 };
 
 struct Task {
   int id;
   QString title;
   std::vector<std::unique_ptr<Formula>> formulas;
+  std::vector<std::unique_ptr<Image>> images;
 };
 
 struct Assignment {
@@ -29,6 +37,23 @@ struct Assignment {
     auto* ptr = t.get();
     tasks.push_back(std::move(t));
     return ptr;
+  }
+
+  Image* addImage(Task* task, const QString& path) {
+    auto img = std::make_unique<Image>();
+    img->id = nextId++;
+    img->path = path;
+    auto* ptr = img.get();
+
+    task->images.push_back(std::move(img));
+    return ptr;
+  }
+
+  void removeImage(Task* task, int id) {
+    auto& v = task->images;
+    v.erase(
+      std::remove_if(v.begin(), v.end(), [id](const auto& img){ return img->id == id; }), v.end()
+    );
   }
 
   Formula* addFormula(Task* task, int afterId = -1) {

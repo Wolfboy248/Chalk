@@ -42,6 +42,15 @@ public slots:
     emit updatedExplanation();
   }
 
+  void toggleAnswer(int id) {
+    // qDebug() << "OMGOMGOMG";
+    if (!mTask) return;
+    for (auto& f : mTask->formulas) {
+      if (f->id == id) { f->isAnswer = !f->isAnswer; }
+    }
+    emit updatedExplanation();
+  }
+
   void addFormula() {
     if (!mTask) return;
     auto f = assignment->addFormula(mTask);
@@ -118,12 +127,23 @@ private:
         {"explanation", f->explanation},
         {"result", f->result},
         {"error", f->error},
+        {"isAnswer", f->isAnswer},
+      });
+    }
+
+    QJsonArray images;
+    for (const auto& i : task->images) {
+      images.append(QJsonObject{
+        {"id", static_cast<int>(i->id)},
+        {"path", i->path},
+        {"caption", i->caption},
       });
     }
 
     return QJsonDocument(QJsonObject{
       {"title", task->title},
       {"formulas", formulas},
+      {"images", images},
     }).toJson();
   }
 

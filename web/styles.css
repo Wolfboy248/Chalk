@@ -14,8 +14,19 @@ button {
   font-size: 24px;
 }
 
-button:hover {
+button:hover, button.active {
   background-color: rgba(0, 0, 0, 0.1);
+  cursor: pointer;
+}
+
+.buttons-container {
+  
+}
+
+.buttons-container > button {
+  all: unset;
+  font-size: 16px;
+  padding: 0;
   cursor: pointer;
 }
 

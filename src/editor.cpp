@@ -190,25 +190,38 @@ void Editor::onTaskSelected(Task* task) {
 }
 
 void Editor::exportToPdf() {
-  pagesContainer->page()->runJavaScript(R"(
-    document.body.offsetHeight;
-  )", [this](const QVariant&) {
-    QTimer::singleShot(100, this, [this]() {
-      QString fileName = QFileDialog::getSaveFileName(
-        this,
-        "Export to PDF",
-        "",
-        "PDF (*.pdf)"
-      );
+  QTimer::singleShot(100, this, [this]() {
+    QString fileName = QFileDialog::getSaveFileName(
+      this,
+      "Export to PDF",
+      "",
+      "PDF (*.pdf)"
+    );
 
-      if (fileName == "") return;
+    if (fileName.isEmpty()) return;
+    if (!fileName.endsWith(".pdf")) fileName += ".pdf";
 
-      if (!fileName.endsWith(".pdf")) {
-        fileName += ".pdf";
-      }
-
-      pagesContainer->page()->printToPdf(fileName);
-    });
+    pagesContainer->page()->printToPdf(fileName);
   });
+  // pagesContainer->page()->runJavaScript(R"(
+  //   document.body.offsetHeight || 0;
+  // )", [this](const QVariant&) {
+  //   QTimer::singleShot(100, this, [this]() {
+  //     QString fileName = QFileDialog::getSaveFileName(
+  //       this,
+  //       "Export to PDF",
+  //       "",
+  //       "PDF (*.pdf)"
+  //     );
+  //
+  //     if (fileName == "") return;
+  //
+  //     if (!fileName.endsWith(".pdf")) {
+  //       fileName += ".pdf";
+  //     }
+  //
+  //     pagesContainer->page()->printToPdf(fileName);
+  //   });
+  // });
 }
 

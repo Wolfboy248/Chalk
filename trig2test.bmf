@@ -1,0 +1,464 @@
+{
+  "title" "Trigonometri II"
+  "version" "0.1.0"  
+
+  tasks {    
+
+    task_0 {
+      "order" "0"
+      "title" "Opgave 4.10a"      
+
+      formulas {        
+
+        formula_1 {
+          "explanation" "
+"
+          "isAnswer" "0"
+          "latex" "A=70\degree"
+          "order" "0"
+          "result" ""
+        }
+
+        formula_2 {
+          "explanation" ""
+          "isAnswer" "0"
+          "latex" "a=7\ cm"
+          "order" "1"
+          "result" ""
+        }
+
+        formula_3 {
+          "explanation" ""
+          "isAnswer" "0"
+          "latex" "b=5\ cm"
+          "order" "2"
+          "result" ""
+        }
+
+        formula_4 {
+          "explanation" "Man kan regne B ved hjælp af sinusrelationen:"
+          "isAnswer" "0"
+          "latex" "\frac{\sin\left(B\right)}{b}=\frac{\sin\left(A\right)}{a}"
+          "order" "3"
+          "result" ""
+        }
+
+        formula_5 {
+          "explanation" ""
+          "isAnswer" "0"
+          "latex" "\Updownarrow"
+          "order" "4"
+          "result" ""
+        }
+
+        formula_6 {
+          "explanation" ""
+          "isAnswer" "1"
+          "latex" "B=\arcsin\left(\frac{\sin\left(A\right)}{a}\cdot b\right)"
+          "order" "5"
+          "result" "42,16\degree"
+        }
+
+        formula_7 {
+          "explanation" "C beregnes ved hjælp af vinkelsummen i trekanter:"
+          "isAnswer" "1"
+          "latex" "C=180\degree-A-B"
+          "order" "6"
+          "result" "67,84\degree"
+        }
+
+        formula_8 {
+          "explanation" "Man kan beregne c ved hjælp af sinusrelationen:"
+          "isAnswer" "1"
+          "latex" "c=\frac{a}{\sin\left(A\right)}\cdot\sin\left(C\right)"
+          "order" "7"
+          "result" "6,899 \  cm"
+        }
+      }
+
+      images {        
+
+        image_54 {
+          "caption" ""
+          "order" "0"
+          "path" "/home/georgek/Pictures/spongebob.png"
+        }
+      }
+    }
+
+    task_16 {
+      "order" "2"
+      "title" "Opgave 4.10c"      
+
+      formulas {        
+
+        formula_17 {
+          "explanation" ""
+          "isAnswer" "0"
+          "latex" "C=20,3\degree"
+          "order" "0"
+          "result" ""
+        }
+
+        formula_18 {
+          "explanation" ""
+          "isAnswer" "0"
+          "latex" "b=5\ cm"
+          "order" "1"
+          "result" ""
+        }
+
+        formula_19 {
+          "explanation" ""
+          "isAnswer" "0"
+          "latex" "c=2,5\ cm"
+          "order" "2"
+          "result" ""
+        }
+
+        formula_20 {
+          "explanation" ""
+          "isAnswer" "1"
+          "latex" "B=\arcsin\left(\frac{\sin\left(C\right)}{c}\cdot b\right)"
+          "order" "3"
+          "result" "43,94\degree"
+        }
+
+        formula_21 {
+          "explanation" ""
+          "isAnswer" "1"
+          "latex" "A=180\degree-C-B"
+          "order" "4"
+          "result" "115,8\degree"
+        }
+
+        formula_22 {
+          "explanation" ""
+          "isAnswer" "1"
+          "latex" "a=\frac{b}{\sin\left(B\right)}\cdot\sin\left(A\right)"
+          "order" "5"
+          "result" "6,49 \  cm"
+        }
+      }
+
+      images {
+      }
+    }
+
+    task_23 {
+      "order" "3"
+      "title" "Opgave 4.13a"      
+
+      formulas {        
+
+        formula_24 {
+          "explanation" ""
+          "isAnswer" "0"
+          "latex" "a=10\ cm"
+          "order" "0"
+          "result" ""
+        }
+
+        formula_25 {
+          "explanation" ""
+          "isAnswer" "0"
+          "latex" "b=8\ cm"
+          "order" "1"
+          "result" ""
+        }
+
+        formula_26 {
+          "explanation" ""
+          "isAnswer" "0"
+          "latex" "C=60\degree"
+          "order" "2"
+          "result" ""
+        }
+
+        formula_27 {
+          "explanation" "Her bruges cosinusrelationen til at beregne c:"
+          "isAnswer" "0"
+          "latex" "c^2=a^2+b^2-2\cdot a\cdot b\cdot\cos\left(C\right)"
+          "order" "3"
+          "result" ""
+        }
+
+        formula_28 {
+          "explanation" ""
+          "isAnswer" "0"
+          "latex" "\Updownarrow"
+          "order" "4"
+          "result" ""
+        }
+
+        formula_29 {
+          "explanation" ""
+          "isAnswer" "1"
+          "latex" "c=\sqrt{a^2+b^2-2\cdot a\cdot b\cdot\cos\left(C\right)}"
+          "order" "5"
+          "result" "9,165 \  cm"
+        }
+
+        formula_30 {
+          "explanation" "Derefter behøves man ikke bruge cosinusrelationen, da vi nu kan bruge sinusrelationen."
+          "isAnswer" "1"
+          "latex" "B=\arcsin\left(\frac{\sin\left(C\right)}{c}\cdot b\right)"
+          "order" "6"
+          "result" "49,11\degree"
+        }
+
+        formula_31 {
+          "explanation" ""
+          "isAnswer" "1"
+          "latex" "A=180\degree-B-C"
+          "order" "7"
+          "result" "70,89\degree"
+        }
+      }
+
+      images {
+      }
+    }
+
+    task_32 {
+      "order" "4"
+      "title" "Opgave 4.13b"      
+
+      formulas {        
+
+        formula_33 {
+          "explanation" ""
+          "isAnswer" "0"
+          "latex" "A=120\degree"
+          "order" "0"
+          "result" ""
+        }
+
+        formula_34 {
+          "explanation" ""
+          "isAnswer" "0"
+          "latex" "b=4,6\ cm"
+          "order" "1"
+          "result" ""
+        }
+
+        formula_35 {
+          "explanation" ""
+          "isAnswer" "0"
+          "latex" "c=5,8\ cm"
+          "order" "2"
+          "result" ""
+        }
+
+        formula_36 {
+          "explanation" "Samme koncept som i 4.13a, her bruges cosinusrelationen til at finde a."
+          "isAnswer" "0"
+          "latex" "a^2=b^2+c^2-2\cdot b\cdot c\cdot\cos\left(A\right)"
+          "order" "3"
+          "result" ""
+        }
+
+        formula_37 {
+          "explanation" ""
+          "isAnswer" "0"
+          "latex" "\Updownarrow"
+          "order" "4"
+          "result" ""
+        }
+
+        formula_38 {
+          "explanation" ""
+          "isAnswer" "1"
+          "latex" "a=\sqrt{b^2+c^2-2\cdot b\cdot c\cdot\cos\left(A\right)}"
+          "order" "5"
+          "result" "9,027 \  cm"
+        }
+
+        formula_39 {
+          "explanation" "Sinusrelationen for at finde B:"
+          "isAnswer" "1"
+          "latex" "B=\arcsin\left(\frac{\sin\left(A\right)}{a}\cdot b\right)"
+          "order" "6"
+          "result" "26,19\degree"
+        }
+
+        formula_40 {
+          "explanation" ""
+          "isAnswer" "1"
+          "latex" "C=180\degree-A-B"
+          "order" "7"
+          "result" "33,81\degree"
+        }
+      }
+
+      images {
+      }
+    }
+
+    task_41 {
+      "order" "5"
+      "title" "Opgave 4.13c"      
+
+      formulas {        
+
+        formula_42 {
+          "explanation" ""
+          "isAnswer" "0"
+          "latex" "a=13,6\ mm"
+          "order" "0"
+          "result" ""
+        }
+
+        formula_43 {
+          "explanation" ""
+          "isAnswer" "0"
+          "latex" "b=15,9\ mm"
+          "order" "1"
+          "result" ""
+        }
+
+        formula_44 {
+          "explanation" ""
+          "isAnswer" "0"
+          "latex" "c=16,7\ mm"
+          "order" "2"
+          "result" ""
+        }
+
+        formula_45 {
+          "explanation" ""
+          "isAnswer" "0"
+          "latex" "a^2=b^2+c^2-2\cdot b\cdot c\cdot\cos\left(A\right)"
+          "order" "3"
+          "result" ""
+        }
+
+        formula_46 {
+          "explanation" ""
+          "isAnswer" "0"
+          "latex" "\Updownarrow"
+          "order" "4"
+          "result" ""
+        }
+
+        formula_47 {
+          "explanation" ""
+          "isAnswer" "0"
+          "latex" "a^2-b^2=c^2-2\cdot b\cdot c\cdot\cos\left(A\right)"
+          "order" "5"
+          "result" ""
+        }
+
+        formula_48 {
+          "explanation" ""
+          "isAnswer" "0"
+          "latex" "\Updownarrow"
+          "order" "6"
+          "result" ""
+        }
+
+        formula_49 {
+          "explanation" ""
+          "isAnswer" "0"
+          "latex" "a^2-b^2-c^2=-2\cdot b\cdot c\cdot\cos\left(A\right)"
+          "order" "7"
+          "result" ""
+        }
+
+        formula_50 {
+          "explanation" ""
+          "isAnswer" "0"
+          "latex" "\Updownarrow"
+          "order" "8"
+          "result" ""
+        }
+
+        formula_51 {
+          "explanation" ""
+          "isAnswer" "0"
+          "latex" "a^2-b^2-c^2+2\cdot b\cdot c=\cos\left(A\right)"
+          "order" "9"
+          "result" ""
+        }
+
+        formula_52 {
+          "explanation" ""
+          "isAnswer" "0"
+          "latex" "\Updownarrow"
+          "order" "10"
+          "result" ""
+        }
+
+        formula_53 {
+          "explanation" ""
+          "isAnswer" "0"
+          "latex" "A=\arccos\left(a^2-b^2-c^2+2\cdot b\cdot c\right)"
+          "order" "11"
+          "result" ""
+        }
+      }
+
+      images {
+      }
+    }
+
+    task_9 {
+      "order" "1"
+      "title" "Opgave 4.10b"      
+
+      formulas {        
+
+        formula_10 {
+          "explanation" "Billed af trekant findes i bilag"
+          "isAnswer" "0"
+          "latex" "A=41,6\degree"
+          "order" "0"
+          "result" ""
+        }
+
+        formula_11 {
+          "explanation" ""
+          "isAnswer" "0"
+          "latex" "B=42,3\degree"
+          "order" "1"
+          "result" ""
+        }
+
+        formula_12 {
+          "explanation" ""
+          "isAnswer" "0"
+          "latex" "a=12,3\ cm"
+          "order" "2"
+          "result" ""
+        }
+
+        formula_13 {
+          "explanation" ""
+          "isAnswer" "1"
+          "latex" "C=180\degree-A-B"
+          "order" "3"
+          "result" "96,1\degree"
+        }
+
+        formula_14 {
+          "explanation" ""
+          "isAnswer" "1"
+          "latex" "c=\frac{a}{\sin\left(A\right)}\cdot\sin\left(C\right)"
+          "order" "4"
+          "result" "18,42 \  cm"
+        }
+
+        formula_15 {
+          "explanation" ""
+          "isAnswer" "1"
+          "latex" "b=\frac{a}{\sin\left(A\right)}\cdot\sin\left(B\right)"
+          "order" "5"
+          "result" "12,47 \  cm"
+        }
+      }
+
+      images {
+      }
+    }
+  }
+}

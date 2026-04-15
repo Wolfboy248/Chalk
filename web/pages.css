@@ -60,6 +60,16 @@ body {
   display: block;
 }
 
+.image-block {
+  text-align: center;
+  margin: 10px 0;
+}
+
+.image-block img {
+  max-width: 100%;
+  max-height: 200px;
+}
+
 .page-header {
   /* flex: 0 0 auto; */
   margin-bottom: 8mm;

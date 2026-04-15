@@ -52,6 +52,17 @@ public slots:
     emit updatedTaskTitle();
   }
 
+  void removeImage(int taskId, int imageId) {
+    if (!assignment) return;
+    for (auto& t : assignment->tasks) {
+      if (t->id == taskId) {
+        assignment->removeImage(t.get(), imageId);
+        break;
+      }
+    }
+    emit updatedTaskTitle();
+  }
+
 signals:
   void setBgCol(const QString& str);
   void updatePages(const QString& assignmentJson);
@@ -82,12 +93,23 @@ private:
         {"explanation", f->explanation},
         {"result", f->result},
         {"error", f->error},
+        {"isAnswer", f->isAnswer},
+      });
+    }
+
+    QJsonArray images;
+    for (const auto& i : task->images) {
+      images.append(QJsonObject{
+        {"id", static_cast<int>(i->id)},
+        {"path", i->path},
+        {"caption", i->caption},
       });
     }
 
     return QJsonObject{
       {"title", task->title},
       {"formulas", formulas},
+      {"images", images},
     };
   }
 
