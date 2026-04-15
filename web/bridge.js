@@ -276,41 +276,71 @@ function renderTask(task) {
     var row = document.createElement("div");
     row.className = "formula-row";
 
-    let explanation = document.createElement("div");
-    explanation.className = "explanation";
-    explanation.innerText = f.explanation;
-    explanation.contentEditable = "true";
+    row._showExplanation = false;
 
-    explanation.addEventListener("input", () => {
-      console.log(explanation.innerText);
-      bridge.updateExplanation(f.id, explanation.innerText);
-    })
+    const formulaContainer = document.createElement("div");
+    formulaContainer.className = "formula-container";
+    row.appendChild(formulaContainer);
 
-    row.appendChild(explanation);
+    var mqSpan = document.createElement("span");
+    mqSpan.className = "input-field";
+    formulaContainer.appendChild(mqSpan);
 
     let buttonsContainer = document.createElement("div");
     buttonsContainer.className = "buttons-container";
     row.appendChild(buttonsContainer);
 
+    let explanation = document.createElement("input");
+    explanation.value = f.explanation;
+    explanation.placeholder = "Type explanation here...";
+    // explanation.rows = "0";
+
+    const explanationToggleButton = document.createElement("button");
+    explanationToggleButton.innerText = "Explanation";
+    explanationToggleButton.title = "Add explanation";
+    explanationToggleButton.className = "btn";
+    explanationToggleButton.addEventListener("click", () => {
+      console.log(row._showExplanation);
+      row._showExplanation = !row._showExplanation;
+      if (row._showExplanation) {
+        explanationToggleButton.className = "btn active";
+        explanation.className = "explanation shown";
+      } else {
+        explanationToggleButton.className = "btn";
+        explanation.className = "explanation";
+      }
+    })
+    buttonsContainer.appendChild(explanationToggleButton);
+
     let answerToggleButton = document.createElement("button");
     answerToggleButton.innerText = "Is Answer";
+    answerToggleButton.className = "btn";
+    answerToggleButton._isAnswer = f.isAnswer;
     if (f.isAnswer) {
-      answerToggleButton.className = "active";
+      answerToggleButton.className = "btn active";
     }
     answerToggleButton.addEventListener("click", () => {
-      bridge.toggleAnswer(f.id);
-      if (f.isAnswer) {
-        answerToggleButton.className = "active";
+      console.log("OMG!");
+      answerToggleButton._isAnswer = !answerToggleButton._isAnswer;
+      if (answerToggleButton._isAnswer) {
+        answerToggleButton.className = "btn active";
       } else {
-        answerToggleButton.className = "";
+        answerToggleButton.className = "btn";
       }
+      bridge.toggleAnswer(f.id);
     })
 
     buttonsContainer.appendChild(answerToggleButton);
 
-    var mqSpan = document.createElement("span");
-    mqSpan.className = "input-field";
-    row.appendChild(mqSpan);
+    explanation.className = "explanation";
+    explanation.innerText = f.explanation;
+    explanation.contentEditable = "true";
+
+    explanation.addEventListener("input", () => {
+      console.log(explanation.value);
+      bridge.updateExplanation(f.id, explanation.value);
+    })
+    row.appendChild(explanation);
 
     // remove btn
     var removeBtn = document.createElement("button");

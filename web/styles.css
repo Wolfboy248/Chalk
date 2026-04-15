@@ -4,30 +4,56 @@ html, body {
   font-family: "Arial";
 }
 
-button {
-  all: unset;
-  border: none;
-  height: 100%;
-  aspect-ratio: 1/1;
-  text-align: center;
-  border-radius: 8px;
-  font-size: 24px;
-}
-
-button:hover, button.active {
-  background-color: rgba(0, 0, 0, 0.1);
-  cursor: pointer;
+textarea {
+  resize: none;
+  /* height: fit-content; */
 }
 
 .buttons-container {
-  
+  display: flex;
+  gap: 8px;
+  padding: 8px;
 }
 
-.buttons-container > button {
-  all: unset;
+.buttons-container > .btn {
+  border: none;
   font-size: 16px;
   padding: 0;
   cursor: pointer;
+  border-radius: 4px;
+  /* background: red; */
+  font-family: "Arial";
+  /* padding: 4px 8px; */
+  position: relative;
+  display: flex;
+  overflow: hidden;
+  box-sizing: border-box;
+}
+
+div:empty::before {
+  content: attr(data-placeholder);
+  color: #9aa3ad;
+}
+
+.btn.active {
+  background: #D0DDEA;
+}
+
+.btn.active::before {
+  content: '';
+  display: block;
+  position: relative;
+  background: #2F5D8C;
+  width: 4px;
+  height: 100%;
+  left: 0;
+  top: 0;
+  margin-right: 5px;
+}
+
+.btn.active::after {
+  content: '';
+  margin-left: 5px;
 }
 
 #add-btn {
@@ -47,6 +73,9 @@ button:hover, button.active {
 #formulas {
   display: flex;
   flex-direction: column;
+  box-sizing: border-box;
+  padding: 8px;
+  gap: 8px;
 }
 
 .formula-row {
@@ -55,6 +84,10 @@ button:hover, button.active {
   max-width: 100%;
   position: relative;
   flex-direction: column;
+  border-radius: 12px;
+  background-color: #f2f2f2;
+  border: 1px solid grey;
+  overflow: hidden;
 }
 
 .formula-row > .explanation {
@@ -62,8 +95,33 @@ button:hover, button.active {
   font-size: 16px;
 }
 
-.formula-row > .input-field {
+.omg {
+  background: red;
+}
+
+.explanation {
+  display: none;
+  border: none;
+  /* border: 1px solid black; */
+  outline: none;
+  border-bottom-left-radius: 12px;
+  border-bottom-right-radius: 12px;
+}
+
+.explanation.shown {
+  display: block;
+}
+
+.formula-row .formula-container {
+  flex: 1 1 auto;
+}
+
+.formula-row .input-field {
   padding: 20px;
+  width: 100%;
+  border-top-left-radius: 12px;
+  border-top-right-radius: 12px;
+  background: white;
 }
 
 .remove-btn {
@@ -97,7 +155,8 @@ button:hover, button.active {
 .input-field {
   box-sizing: border-box;
   border-radius: 0;
-  border: 1px solid grey;
+  border: none;
+  /* border: 1px solid grey; */
   font-size: 24px;
   outline: none;
   flex: 1;
