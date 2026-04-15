@@ -30,7 +30,9 @@ private:
   void setupCentralWidget();
   void setupDocks();
 
+  void newAssignment();
   void save();
+  void saveAs();
   void load();
   void test();
 
@@ -46,6 +48,8 @@ private:
   NavigatorWidget* navigator;
 
   Assignment assignment;
+
+  QString currentFile = "";
 
   Task* selectedTask = nullptr;
 

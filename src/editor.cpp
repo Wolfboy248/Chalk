@@ -28,6 +28,8 @@
 
 #include <QDebug>
 
+#define WINDOW_TITLE_PREFIX "Chalk - "
+
 void logAssignment(const Assignment& a) {
   qDebug() << "Assignment: " << a.title;
   qDebug() << "Tasks:";
@@ -47,6 +49,7 @@ Editor::Editor(QWidget* parent) : QMainWindow(parent) {
   setupToolbar();
   setupCentralWidget();
   setupDocks();
+  setWindowTitle(WINDOW_TITLE_PREFIX + QString("unsaved*"));
 
   // exportToPdf();
 }
@@ -56,6 +59,16 @@ void Editor::test() {
 }
 
 void Editor::save() {
+  if (currentFile == "") {
+    saveAs();
+    return;
+  }
+
+  AssignmentRepository::save(assignment, currentFile);
+  setWindowTitle(WINDOW_TITLE_PREFIX + currentFile + " - " + assignment.title);
+}
+
+void Editor::saveAs() {
   QString fileName = QFileDialog::getSaveFileName(
     this,
     "Save File",
@@ -70,6 +83,21 @@ void Editor::save() {
   }
 
   AssignmentRepository::save(assignment, fileName);
+  currentFile = fileName;
+  setWindowTitle(WINDOW_TITLE_PREFIX + currentFile + " - " + assignment.title);
+}
+
+void Editor::newAssignment() {
+  Assignment ass{};
+  assignment = std::move(ass);
+
+  setWindowTitle(WINDOW_TITLE_PREFIX + QString("unsaved*"));
+  pagesBridge->setAssignment(&assignment);
+  navigator->setAssignment(&assignment);
+  mathDock->setAssignment(&assignment);
+  pagesBridge->update();
+
+  currentFile = "";
 }
 
 void Editor::load() {
@@ -88,16 +116,44 @@ void Editor::load() {
   navigator->setAssignment(&assignment);
   mathDock->setAssignment(&assignment);
   pagesBridge->update();
+
+  currentFile = fileName;
+  setWindowTitle(WINDOW_TITLE_PREFIX + currentFile + " - " + assignment.title);
 }
 
 void Editor::setupMenu() {
   QMenu* fileMenu = menuBar()->addMenu("&File");
-  fileMenu->addAction("New");
-  fileMenu->addAction("Open...", this, &Editor::load);
-  fileMenu->addAction("Save", this, &Editor::save);
+
+  QAction* newAction = new QAction("New", this);
+  newAction->setShortcut(QKeySequence::New);
+  connect(newAction, &QAction::triggered, this, &Editor::newAssignment);
+
+  QAction* openAction = new QAction("Open...", this);
+  openAction->setShortcut(QKeySequence::Open);
+  connect(openAction, &QAction::triggered, this, &Editor::load);
+
+  fileMenu->addAction(newAction);
+  fileMenu->addAction(openAction);
+
+  QAction* saveAction = new QAction("Save", this);
+  saveAction->setShortcut(QKeySequence::Save);
+  connect(saveAction, &QAction::triggered, this, &Editor::save);
+
+  QAction* saveAsAction = new QAction("Save as", this);
+  saveAsAction->setShortcut(QKeySequence::SaveAs);
+  connect(saveAsAction, &QAction::triggered, this, &Editor::saveAs);
+  fileMenu->addAction(saveAction);
+  fileMenu->addAction(saveAsAction);
+
+  // fileMenu->addAction("Save as", )
   fileMenu->addSeparator();
+
+  QAction* exportAction = new QAction("Export...", this);
+  exportAction->setShortcut(QKeySequence::Print);
+  connect(exportAction, &QAction::triggered, this, &Editor::exportToPdf);
+
+  fileMenu->addAction(exportAction);
   fileMenu->addAction("Update", this, &Editor::test);
-  fileMenu->addAction("Export", this, &Editor::exportToPdf);
   fileMenu->addSeparator();
   fileMenu->addAction("Exit", qApp, &QApplication::quit);
 

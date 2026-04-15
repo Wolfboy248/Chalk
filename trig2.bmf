@@ -72,7 +72,7 @@
           "isAnswer" "1"
           "latex" "c=\frac{a}{\sin\left(A\right)}\cdot\sin\left(C\right)"
           "order" "7"
-          "result" "6,899 \  cm"
+          "result" "6,899 cm"
         }
       }
 
@@ -713,18 +713,18 @@
         }
 
         formula_86 {
-          "explanation" "Udvider ved brug af 2. kvadratsætning:"
-          "isAnswer" "0"
-          "latex" "r^2=\left(\frac{k}{2}\right)^2+r^2-2\cdot r\cdot h+h^2"
-          "order" "4"
-          "result" ""
-        }
-
-        formula_87 {
           "explanation" ""
           "isAnswer" "0"
           "latex" "\Updownarrow"
           "order" "3"
+          "result" ""
+        }
+
+        formula_87 {
+          "explanation" "Udvider ved brug af 2. kvadratsætning:"
+          "isAnswer" "0"
+          "latex" "r^2=\left(\frac{k}{2}\right)^2+r^2-2\cdot r\cdot h+h^2"
+          "order" "4"
           "result" ""
         }
 
@@ -745,18 +745,18 @@
         }
 
         formula_90 {
-          "explanation" "Isolere r:"
-          "isAnswer" "0"
-          "latex" "2\cdot r\cdot h=\left(\frac{k}{2}\right)^2+h^2"
-          "order" "8"
-          "result" ""
-        }
-
-        formula_91 {
           "explanation" ""
           "isAnswer" "0"
           "latex" "\Updownarrow"
           "order" "7"
+          "result" ""
+        }
+
+        formula_91 {
+          "explanation" "Isolere r:"
+          "isAnswer" "0"
+          "latex" "2\cdot r\cdot h=\left(\frac{k}{2}\right)^2+h^2"
+          "order" "8"
           "result" ""
         }
 
@@ -789,13 +789,13 @@
       }
     }
 
-    task_96 {
+    task_95 {
       "order" "10"
       "title" "Opgave 4.24"      
 
       formulas {        
 
-        formula_97 {
+        formula_96 {
           "explanation" "Ved brug af pythagoras læresætning kan man finde både a, b og c:"
           "isAnswer" "1"
           "latex" "a=\sqrt{0,9\ m^2+1,8\ m^2}"
@@ -803,7 +803,7 @@
           "result" "1,643 \  m"
         }
 
-        formula_98 {
+        formula_97 {
           "explanation" "
 "
           "isAnswer" "1"
@@ -812,7 +812,7 @@
           "result" "2,577 \  m"
         }
 
-        formula_99 {
+        formula_98 {
           "explanation" ""
           "isAnswer" "1"
           "latex" "c=\sqrt{2,4\ m^2+3,1\ m^2}"
