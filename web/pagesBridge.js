@@ -222,15 +222,15 @@ const paginate = async (blocks) => {
   pages.push(page);
 
   for (const block of blocks) {
+
+    if (block.type == "title" || block.type == "task") {
+      block.el.contentEditable = "true";
+    }
     const clone = block.el.cloneNode(true);
 
     await waitForImages(clone);
 
     const h = measureHeight(clone);
-
-    if (block.type == "title" || block.type == "task") {
-      block.el.contentEditable = "true";
-    }
 
     console.log(h + height);
     console.log(block.type + ": " + block.el.innerText + ": " + h);

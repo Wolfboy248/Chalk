@@ -62,7 +62,7 @@ function latexToMathjs(latex) {
     .replace(/\\frac\{([^}]+)\}\{([^}]+)\}/g, '($1)/($2)')
     .replace(/\\sqrt\{([^}]+)\}/g, 'sqrt($1)')
 
-    .replace(/([0-9])\s*(ml|l|L|mol|cm|m|kg)/g, "$1 $2")
+    .replace(/([0-9])\s*(ml|l|L|mol|cm|m|kg|V)/g, "$1 $2")
 
     .replace(/(\d),(?=\d)/g, '$1.')
     .replace(/;/g, ',')
@@ -78,6 +78,7 @@ function latexToMathjs(latex) {
 const mathJsResultToLatex = (val) => {
   let res = val
     .replace(/ ?deg/g, "\\degree")
+    .replace(/\\degree![a-zA-Z], "$1")
 
   return res;
 }
@@ -202,7 +203,7 @@ new QWebChannel(qt.webChannelTransport, function(channel) {
               math.format(val, {
                 precision: 4,
                 notation: "auto",
-              }).replace(/\./g, ",").replace(/ (?!deg\b)/g, " \\  ")
+              }).replace(/\./g, ",").replace(/ (?!deg\b)\ ^[a-zA-Z]/g, " \\  ")
             );
           } else {
             const formatted = math.format(val, {
