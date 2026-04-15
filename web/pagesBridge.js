@@ -1,4 +1,11 @@
-let bridge;
+"use strict";
+
+let bridge = null;
+let prevKeys = null;
+let lastScrollY = 0;
+
+const blockRefs = new Map();
+
 const pagesContainer = document.getElementById("pages");
 
 let lastScrollPos = 0;
@@ -7,47 +14,195 @@ const probe = document.createElement("div");
 probe.id = "probe";
 document.body.appendChild(probe);
 
-new QWebChannel(qt.webChannelTransport, function(channel) {
-  bridge = channel.objects.bridge;
+// Formula latex
+const buildLatex = (f) => {
+  let latex = f.latex;
+  if (f.result != null && f.result !== "") {
+    const rhs = f.latex.split("=")[1]?.trim();
+    const hasVar = (s) => {/[a-zA-Z]/.test(s)};
+    if (!rhs || hasVar(rhs)) {
+      latex += f.isAnswer
+        ? "=\\underline{\\underline{" + f.result + "}}"
+        : "=" + f.result;
+    }
+  } else if (f.isAnswer) {
+    latex = "\\underline{\\underline{" + latex + "}}";
+  }
+  return latex;
+}
 
-  window.bridge = bridge;
+const buildBlocks = (assignment) => {
+  const blocks = [];
 
-  bridge.setBgCol.connect(function(str) {
-    document.body.style.background = str;
+  blocks.push({
+    type: "title",
+    text: assignment.title
   });
 
-  bridge.updatePages.connect(function(assignment) {
-    lastScrollPos = window.scrollY;
-    console.log("Last scroll pos: " + lastScrollPos);
-    renderPages(JSON.parse(assignment));
-  })
+  for (const task of assignment.tasks) {
+    console.error("ID: " + task.id);
+    blocks.push({ type: "task", id: task.id, text: task.title });
 
-  bridge.jsReady();
-});
+    for (const f of task.formulas) {
+      if (f.explanation && f.explanation !== "" && f.explanation !== "\n") {
+        blocks.push({ type: "explanation", formulaId: f.id, text: f.explanation });
+      }
+      blocks.push({ type: "formula", formulaId: f.id, latex: buildLatex(f) });
+    }
+  }
 
-const splitEquation = (expr) => {
-  const parts = expr.split("=");
-  return {
-    lhs: parts[0]?.trim(),
-    rhs: parts[1]?.trim()
-  };
+  blocks.push({ type: "bilag" });
+
+  for (const task of assignment.tasks) {
+    if (task.images.length > 0) {
+      blocks.push({ type: "bilag-title", id: task.id, text: task.title });
+    }
+    for (const img of task.images) {
+      blocks.push({ type: "image", taskId: task.id, imageId: img.id, path: img.path });
+    }
+  }
+
+  return blocks;
 }
 
-const isNumericExpression = (expr) => {
-  return /^[\d.\s]+$/.test(expr);
+// Ooga booga
+const blockKey = (block) => {
+  switch (block.type) {
+    case "title": return "title";
+    case "task": return "task:" + block.id;
+    case "explanation": return "explanation:" + block.formulaId;
+    case "formula": return "formula:" + block.formulaId;
+    case "bilag": return "bilag";
+    case "bilag-title": return "bilag-title:" + block.id;
+    case "image": return "image:" + block.imageId;
+    default: return "?" + Math.random();
+  }
 }
 
-const hasVariables = (expr) => {
-  return /[a-zA-Z]/.test(expr);
+// element creation
+const katexRender = (el, latex) => {
+  window.katex.render(latex, el, { throwOnError: false });
 }
 
-const getPageHeight = () => {
-  const page = createPage();
-  document.body.appendChild(page.page);
-  const height = page.content.getBoundingClientRect().height;
-  document.body.removeChild(page.page);
-  return height;
+const createElement = (block) => {
+  switch (block.type) {
+    case "title": {
+      const el = document.createElement("h1");
+      el.contentEditable = "true";
+      el.innerText = block.text;
+      return el;
+    }
+    case "task": {
+      const el = document.createElement("h2");
+      el.contentEditable = "true";
+      el.innerText = block.text;
+      return el;
+    }
+    case "explanation": {
+      const el = document.createElement("p");
+      el.innerText = block.text;
+      return el;
+    }
+    case "formula": {
+      const el = document.createElement("div");
+      el.className = "formula";
+      katexRender(el, block.latex);
+      el._latex = block.latex; // Cache to not re render if same
+      return el;
+    }
+    case "bilag": {
+      const el = document.createElement("h1");
+      el.innerText = "Bilag";
+      return el;
+    }
+    case "bilag-title": {
+      const el = document.createElement("h2");
+      el.innerText = block.text;
+      return el;
+    }
+    case "image": {
+      const wrapper = document.createElement("div");
+      wrapper.className = "image-block";
+      const img = document.createElement("img");
+      img.src = block.path;
+      wrapper.appendChild(img);
+      return wrapper;
+    }
+    default: return document.createElement("div");
+  }
 }
+
+const attachListeners = (block, el) => {
+  switch (block.type) {
+    case "title": {
+      el.addEventListener("input", () => bridge && bridge.updateTitle(el.innerText));
+      break;
+    }
+    case "task": {
+      el.addEventListener("input", () => bridge && bridge.updateTaskTitle(block.id, el.innerText));
+      break;
+    }
+    case "image": {
+      el.addEventListener("click", () => bridge && bridge.removeImage(block.taskId, block.imageId));
+      break;
+    }
+  }
+}
+
+// Pagination
+const PAGE_HEIGHT = 297 * 3.78 - 100;
+
+const waitForImages = async (el) => {
+  const imgs = el.querySelectorAll("img");
+  await Promise.all([...imgs].map(async (img) => {
+    if (!img.src) return;
+    if (!img.complete) await new Promise(r => { img.onload = r; img.onerror = r; });
+    if (img.decode) { try { await img.decode(); } catch(_) {} }
+  }));
+}
+
+const measureHeight = (el) => {
+  probe.innerHTML = "";
+  // const clone = el.cloneNode(true);
+  probe.appendChild(el);
+
+  const rect = el.getBoundingClientRect();
+  const style = window.getComputedStyle(el);
+
+  const margin =
+    rect.height +
+    parseFloat(style.marginTop) +
+    parseFloat(style.marginBottom);
+
+  // const rectHeight = clone.getBoundingClientRect().height;
+
+  // console.log(rectHeight + margin);
+  return margin;
+}
+
+// const splitEquation = (expr) => {
+//   const parts = expr.split("=");
+//   return {
+//     lhs: parts[0]?.trim(),
+//     rhs: parts[1]?.trim()
+//   };
+// }
+//
+// const isNumericExpression = (expr) => {
+//   return /^[\d.\s]+$/.test(expr);
+// }
+//
+// const hasVariables = (expr) => {
+//   return /[a-zA-Z]/.test(expr);
+// }
+
+// const getPageHeight = () => {
+//   const page = createPage();
+//   document.body.appendChild(page.page);
+//   const height = page.content.getBoundingClientRect().height;
+//   document.body.removeChild(page.page);
+//   return height;
+// }
 
 const createPage = () => {
   const page = document.createElement("div");
@@ -71,223 +226,313 @@ const createPage = () => {
   page.appendChild(header);
   page.appendChild(content);
 
-  return { page, content, header };
+  return { page, content };
 }
 
-const measureHeight = (el) => {
-  probe.innerHTML = "";
-  // const clone = el.cloneNode(true);
-  probe.appendChild(el);
+const fullRender = async (blocks) => {
+  blockRefs.clear();
 
-  const rect = el.getBoundingClientRect();
-  const style = window.getComputedStyle(el);
-
-  const margin =
-    rect.height +
-    parseFloat(style.marginTop) +
-    parseFloat(style.marginBottom);
-
-  // const rectHeight = clone.getBoundingClientRect().height;
-
-  // console.log(rectHeight + margin);
-  return margin;
-}
-
-const createText = (tag, text) => {
-  const el = document.createElement(tag);
-  el.innerText = text;
-  return el;
-}
-
-const buildBlocks = (assignment) => {
-  const blocks = [];
-
-  blocks.push({
-    type: "title",
-    el: createText("h1", assignment.title)
-  });
-
-  assignment.tasks.forEach(task => {
-    blocks.push({
-      type: "task",
-      id: task.id,
-      el: createText("h2", task.title)
-    });
-
-    task.formulas.forEach(f => {
-      if (f.explanation != "" && f.explanation != "\n") {
-        blocks.push({
-          type: "explanation",
-          el: createText("p", f.explanation)
-        })
-      }
-
-      const div = document.createElement("div");
-      div.className = "formula";
-
-      let latex = f.latex;
-      console.log("Latex: " + f.latex);
-      if (f.result != null && f.result != "") {
-        const { lhs, rhs } = splitEquation(f.latex);
-        if (rhs && hasVariables(rhs)) {
-          if (f.isAnswer) {
-            latex += "=\\underline{\\underline{" + f.result + "}}";
-          } else {
-            latex += "=" + f.result;
-          }
-        } else if (!rhs) {
-          if (f.isAnswer) {
-            latex += "=\\underline{\\underline{" + f.result + "}}";
-          } else {
-            latex += "=" + f.result;
-          }
-        }
-      } else {
-        if (f.isAnswer) {
-          latex = "\\underline{\\underline{" + latex + "}}";
-        }
-      }
-
-      katex.render(latex, div, { throwOnError: false });
-
-      blocks.push({
-        type: "formula",
-        el: div
-      });
-    });
-  });
-
-  blocks.push({
-    type: "bilag",
-    el: createText("h1", "Bilag"),
-  });
-
-  assignment.tasks.forEach(task => {
-    if (task.images.length > 0) {
-      blocks.push({
-        type: "bilag-title",
-        el: createText("h2", task.title),
-      });
-    }
-
-    task.images?.forEach(img => {
-      const wrapper = document.createElement("div");
-      wrapper.className = "image-block";
-
-      const image = document.createElement("img");
-      image.src = `${img.path}`;
-
-      wrapper.appendChild(image);
-
-      blocks.push({
-        type: "image",
-        taskId: task.id,
-        imageId: img.id,
-        el: wrapper
-      });
-    });
-  });
-
-  return blocks;
-}
-
-const waitForImages = async (el) => {
-  const imgs = el.querySelectorAll("img");
-
-  await Promise.all([...imgs].map(async (img) => {
-    if (!img.src) return;
-
-    if (!img.complete) {
-      await new Promise(res => {
-        img.onload = res;
-        img.onerror = res;
-      });
-    }
-
-    // important: forces real decoding (fixes Qt/WebEngine bugs)
-    if (img.decode) {
-      try { await img.decode(); } catch (e) {}
-    }
-  }));
-};
-
-const paginate = async (blocks) => {
   const pages = [];
-
-  let page = createPage();
-  let height = 0;
-
-  const PAGE_HEIGHT = (297 * 3.78) - 100;
-
-  pages.push(page);
+  let cur = createPage();
+  pages.push(cur);
+  let heightUsed = 0;
 
   for (const block of blocks) {
+    const el = createElement(block);
+    const key = blockKey(block);
 
-    if (block.type == "title" || block.type == "task") {
-      block.el.contentEditable = "true";
-    }
-    const clone = block.el.cloneNode(true);
-
+    const clone = el.cloneNode(true);
     await waitForImages(clone);
-
     const h = measureHeight(clone);
 
-    console.log(h + height);
-    console.log(block.type + ": " + block.el.innerText + ": " + h);
-
-    if (height + h > PAGE_HEIGHT) {
-      page = createPage();
-      pages.push(page);
-      height = 0;
+    if (heightUsed + h > PAGE_HEIGHT && heightUsed > 0) {
+      cur = createPage();
+      pages.push(cur);
+      heightUsed = 0;
     }
 
-    // const clone = block.el.cloneNode(true);
+    attachListeners(block, el);
+    cur.content.appendChild(el);
+    blockRefs.set(key, el);
+    heightUsed += h;
+  }
 
-    if (block.type == "title") {
-      clone.addEventListener("input", () => {
-        console.log("WOEOOEOEE");
-        bridge.updateTitle(clone.innerText);
-      })
-    } else if (block.type == "task") {
-      clone.addEventListener("input", () => {
-        bridge.updateTaskTitle(block.id, clone.innerText)
-      })
-    } else if (block.type == "image") {
-      clone.addEventListener("click", () => {
-        console.log("WRAPPER CLICKED");
-        bridge.removeImage(block.taskId, block.imageId);
-      })
-    }
-
-    page.content.appendChild(clone);
-    height += h;
-  };
-
-  return pages;
-}
-
-const renderLatex = (el, latex) => {
-  window.katex.render(latex, el, {
-    throwOnError: false
-  });
-};
-
-const renderPages = async (assignment) => {
   pagesContainer.innerHTML = "";
+  for (const { page } of pages) {
+    pagesContainer.appendChild(page);
+  }
+}
 
+const patchBlocks = (newBlocks) => {
+  for (const block of newBlocks) {
+    const el = blockRefs.get(blockKey(block));
+    if (!el) continue;
+
+    switch (block.type) {
+      case "title":
+      case "task":
+      case "explanation":
+      case "bilg-title":
+        if (document.activeElement !== el && el.innerText != block.text) {
+          el.innerText = block.text;
+        }
+        break;
+
+      case "formula":
+        if (el._latex !== block.latex) {
+          el._latex = block.latex;
+          katexRender(el, block.latex);
+        }
+        break;
+    }
+  }
+}
+
+// Smart update (smart, clever, very demure)
+let rendering = false;
+let queued = null;
+
+const smartUpdate = async (assignment) => {
+  if (rendering) {
+    queued = assignment;
+    return;
+  }
+  
   const blocks = buildBlocks(assignment);
-  const pages = await paginate(blocks);
+  const newKeys = blocks.map(blockKey).join(",");
 
-  pages.forEach(p => {
-    pagesContainer.appendChild(p.page);
+  if (!prevKeys || prevKeys !== newKeys) {
+    rendering = true;
+    lastScrollY = window.scrollY;
+    await fullRender(blocks);
+    prevKeys = newKeys;
+    rendering = false;
+    requestAnimationFrame(() => requestAnimationFrame(() => window.scrollTo(0, lastScrollY)));
+  } else {
+    patchBlocks(blocks);
+    prevKeys = newKeys;
+  }
+
+  if (queued) {
+    const next = queued;
+    queued = null;
+    smartUpdate(next);
+  }
+}
+
+new QWebChannel(qt.webChannelTransport, function(channel) {
+  bridge = channel.objects.bridge;
+
+  window.bridge = bridge;
+
+  bridge.setBgCol.connect(function(str) {
+    document.body.style.background = str;
   });
 
-  requestAnimationFrame(() => {
-    requestAnimationFrame(() => {
-      window.scrollTo(0, lastScrollPos);
-    })
+  bridge.updatePages.connect(function(assignment) {
+    lastScrollY = window.scrollY;
+    // console.log("Last scroll pos: " + lastScrollPos);
+    smartUpdate(JSON.parse(assignment));
   })
-}
+
+  bridge.jsReady();
+});
+
+// const createText = (tag, text) => {
+//   const el = document.createElement(tag);
+//   el.innerText = text;
+//   return el;
+// }
+//
+// const buildBlocks = (assignment) => {
+//   const blocks = [];
+//
+//   blocks.push({
+//     type: "title",
+//     el: createText("h1", assignment.title)
+//   });
+//
+//   assignment.tasks.forEach(task => {
+//     blocks.push({
+//       type: "task",
+//       id: task.id,
+//       el: createText("h2", task.title)
+//     });
+//
+//     task.formulas.forEach(f => {
+//       if (f.explanation != "" && f.explanation != "\n") {
+//         blocks.push({
+//           type: "explanation",
+//           el: createText("p", f.explanation)
+//         })
+//       }
+//
+//       const div = document.createElement("div");
+//       div.className = "formula";
+//
+//       let latex = f.latex;
+//       console.log("Latex: " + f.latex);
+//       if (f.result != null && f.result != "") {
+//         const { lhs, rhs } = splitEquation(f.latex);
+//         if (rhs && hasVariables(rhs)) {
+//           if (f.isAnswer) {
+//             latex += "=\\underline{\\underline{" + f.result + "}}";
+//           } else {
+//             latex += "=" + f.result;
+//           }
+//         } else if (!rhs) {
+//           if (f.isAnswer) {
+//             latex += "=\\underline{\\underline{" + f.result + "}}";
+//           } else {
+//             latex += "=" + f.result;
+//           }
+//         }
+//       } else {
+//         if (f.isAnswer) {
+//           latex = "\\underline{\\underline{" + latex + "}}";
+//         }
+//       }
+//
+//       katex.render(latex, div, { throwOnError: false });
+//
+//       blocks.push({
+//         type: "formula",
+//         el: div
+//       });
+//     });
+//   });
+//
+//   blocks.push({
+//     type: "bilag",
+//     el: createText("h1", "Bilag"),
+//   });
+//
+//   assignment.tasks.forEach(task => {
+//     if (task.images.length > 0) {
+//       blocks.push({
+//         type: "bilag-title",
+//         el: createText("h2", task.title),
+//       });
+//     }
+//
+//     task.images?.forEach(img => {
+//       const wrapper = document.createElement("div");
+//       wrapper.className = "image-block";
+//
+//       const image = document.createElement("img");
+//       image.src = `${img.path}`;
+//
+//       wrapper.appendChild(image);
+//
+//       blocks.push({
+//         type: "image",
+//         taskId: task.id,
+//         imageId: img.id,
+//         el: wrapper
+//       });
+//     });
+//   });
+//
+//   return blocks;
+// }
+//
+// const waitForImages = async (el) => {
+//   const imgs = el.querySelectorAll("img");
+//
+//   await Promise.all([...imgs].map(async (img) => {
+//     if (!img.src) return;
+//
+//     if (!img.complete) {
+//       await new Promise(res => {
+//         img.onload = res;
+//         img.onerror = res;
+//       });
+//     }
+//
+//     // important: forces real decoding (fixes Qt/WebEngine bugs)
+//     if (img.decode) {
+//       try { await img.decode(); } catch (e) {}
+//     }
+//   }));
+// };
+//
+// const paginate = async (blocks) => {
+//   const pages = [];
+//
+//   let page = createPage();
+//   let height = 0;
+//
+//   const PAGE_HEIGHT = (297 * 3.78) - 100;
+//
+//   pages.push(page);
+//
+//   for (const block of blocks) {
+//
+//     if (block.type == "title" || block.type == "task") {
+//       block.el.contentEditable = "true";
+//     }
+//     const clone = block.el.cloneNode(true);
+//
+//     await waitForImages(clone);
+//
+//     const h = measureHeight(clone);
+//
+//     console.log(h + height);
+//     console.log(block.type + ": " + block.el.innerText + ": " + h);
+//
+//     if (height + h > PAGE_HEIGHT) {
+//       page = createPage();
+//       pages.push(page);
+//       height = 0;
+//     }
+//
+//     // const clone = block.el.cloneNode(true);
+//
+//     if (block.type == "title") {
+//       clone.addEventListener("input", () => {
+//         console.log("WOEOOEOEE");
+//         bridge.updateTitle(clone.innerText);
+//       })
+//     } else if (block.type == "task") {
+//       clone.addEventListener("input", () => {
+//         bridge.updateTaskTitle(block.id, clone.innerText)
+//       })
+//     } else if (block.type == "image") {
+//       clone.addEventListener("click", () => {
+//         console.log("WRAPPER CLICKED");
+//         bridge.removeImage(block.taskId, block.imageId);
+//       })
+//     }
+//
+//     page.content.appendChild(clone);
+//     height += h;
+//   };
+//
+//   return pages;
+// }
+//
+// const renderLatex = (el, latex) => {
+//   window.katex.render(latex, el, {
+//     throwOnError: false
+//   });
+// };
+//
+// const renderPages = async (assignment) => {
+//   pagesContainer.innerHTML = "";
+//
+//   const blocks = buildBlocks(assignment);
+//   const pages = await paginate(blocks);
+//
+//   pages.forEach(p => {
+//     pagesContainer.appendChild(p.page);
+//   });
+//
+//   requestAnimationFrame(() => {
+//     requestAnimationFrame(() => {
+//       window.scrollTo(0, lastScrollPos);
+//     })
+//   })
+// }
 
 // const renderPages = (assignment) => {
 //   console.log(assignment);

@@ -88,7 +88,7 @@ private:
     QJsonArray formulas;
     for (const auto& f : task->formulas) {
       formulas.append(QJsonObject{
-        {"id", static_cast<int>(f->id)},
+        {"id", f->id},
         {"latex", f->latex},
         {"explanation", f->explanation},
         {"result", f->result},
@@ -108,6 +108,7 @@ private:
 
     return QJsonObject{
       {"title", task->title},
+      {"id", task->id},
       {"formulas", formulas},
       {"images", images},
     };

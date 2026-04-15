@@ -78,7 +78,7 @@ function latexToMathjs(latex) {
 const mathJsResultToLatex = (val) => {
   let res = val
     .replace(/ ?deg/g, "\\degree")
-    .replace(/\\degree![a-zA-Z], "$1")
+    // .replace(/\\degree![a-zA-Z], "$1")
 
   return res;
 }
