@@ -14,20 +14,60 @@ const probe = document.createElement("div");
 probe.id = "probe";
 document.body.appendChild(probe);
 
+const splitEquation = (expr) => {
+  const parts = expr.split("=");
+  return {
+    lhs: parts[0]?.trim(),
+    rhs: parts[1]?.trim()
+  };
+}
+
+const isNumericExpression = (expr) => {
+  return /^[\d.\s]+$/.test(expr);
+}
+
+const hasVariables = (expr) => {
+  return /[a-zA-Z]/.test(expr);
+}
+
 // Formula latex
 const buildLatex = (f) => {
   let latex = f.latex;
   if (f.result != null && f.result !== "") {
-    const rhs = f.latex.split("=")[1]?.trim();
-    const hasVar = (s) => {/[a-zA-Z]/.test(s)};
-    if (!rhs || hasVar(rhs)) {
-      latex += f.isAnswer
-        ? "=\\underline{\\underline{" + f.result + "}}"
-        : "=" + f.result;
+    // let latex = f.latex;
+    console.log("Latex: " + f.latex);
+    if (f.result != null && f.result != "") {
+      const { lhs, rhs } = splitEquation(f.latex);
+      if (rhs && hasVariables(rhs)) {
+        if (f.isAnswer) {
+          latex += "=\\underline{\\underline{" + f.result + "}}";
+        } else {
+          latex += "=" + f.result;
+        }
+      } else if (!rhs) {
+        if (f.isAnswer) {
+          latex += "=\\underline{\\underline{" + f.result + "}}";
+        } else {
+          latex += "=" + f.result;
+        }
+      }
+    } else {
+      if (f.isAnswer) {
+        latex = "\\underline{\\underline{" + latex + "}}";
+      }
     }
-  } else if (f.isAnswer) {
-    latex = "\\underline{\\underline{" + latex + "}}";
   }
+  //   const rhs = f.latex.split("=")[1]?.trim();
+  //   const hasVar = (s) => {/[a-zA-Z]/.test(s)};
+  //   if (!rhs || hasVar(rhs)) {
+  //     let result = f.result.replace(" ", "\\  ");
+  //     latex += (f.isAnswer
+  //       ? "=\\underline{\\underline{" + f.latex + "}}"
+  //       : "=") + result;
+  //   }
+  // } else if (f.isAnswer) {
+  //   latex = "\\underline{\\underline{" + latex + "}}";
+  // }
   return latex;
 }
 
@@ -40,7 +80,7 @@ const buildBlocks = (assignment) => {
   });
 
   for (const task of assignment.tasks) {
-    console.error("ID: " + task.id);
+    // console.error("ID: " + task.id);
     blocks.push({ type: "task", id: task.id, text: task.title });
 
     for (const f of task.formulas) {

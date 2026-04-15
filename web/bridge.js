@@ -203,7 +203,7 @@ new QWebChannel(qt.webChannelTransport, function(channel) {
               math.format(val, {
                 precision: 4,
                 notation: "auto",
-              }).replace(/\./g, ",").replace(/ (?!deg\b)\ ^[a-zA-Z]/g, " \\  ")
+              }).replace(/\./g, ",").replace(/(\d)\s+(?!deg\b)([a-zA-Z]+)/g, "$1\\, $2")
             );
           } else {
             const formatted = math.format(val, {
@@ -219,7 +219,7 @@ new QWebChannel(qt.webChannelTransport, function(channel) {
               return;
             }
             // val = math.round(val, 10);
-            results[i].result = mathJsResultToLatex(math.format(val, { precision: 4 }));
+            results[i].result = mathJsResultToLatex(math.format(val, { precision: 4 })).replace(/\./g, ",").replace(/(\d)\s+(?!deg\b)([a-zA-Z]+)/g, "$1\\, $2");
             // results[i].result = math.format(val, { precision: 4 })
           }
 
