@@ -35,6 +35,10 @@ public slots:
     emit updatePages(assignmentToJson(assignment));
   }
 
+  void updateFull() {
+    emit updatePagesFull(assignmentToJson(assignment));
+  }
+
   void updateTitle(const QString& title) {
     qDebug() << "Updating title";
     if (!assignment) return;
@@ -66,6 +70,7 @@ public slots:
 signals:
   void setBgCol(const QString& str);
   void updatePages(const QString& assignmentJson);
+  void updatePagesFull(const QString& assignmentJson);
 
   void updatedTaskTitle();
 
@@ -77,9 +82,15 @@ private:
       tasks.append(taskToJson(t.get()));
     }
 
+    QJsonArray names;
+    for (const auto& n : a->names) {
+      names.append(QJsonValue(n));
+    }
+
     return QJsonDocument(QJsonObject{
       {"title", a->title},
       {"tasks", tasks},
+      {"names", names},
     }).toJson();
   }
 

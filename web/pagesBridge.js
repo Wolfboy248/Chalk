@@ -204,7 +204,7 @@ const measureHeight = (el) => {
 //   return height;
 // }
 
-const createPage = () => {
+const createPage = (assignment) => {
   const page = document.createElement("div");
   page.className = "page";
 
@@ -212,7 +212,26 @@ const createPage = () => {
   header.className = "page-header";
 
   const name = document.createElement("div");
-  name.innerText = `Navn: Georg Ejvind Karlsen`;
+  name.innerText = `Navn: ${
+    assignment.names.length == 0 ? "Please do: Edit -> Names..."
+    : assignment.names.length == 1 ? assignment.names[0] : ""
+  }`;
+
+  if (assignment.names.length > 1) {
+    let str = "";
+    for (let i = 0; i < assignment.names.length; i++) {
+      str += assignment.names[i];
+      if (i + 2 < assignment.names.length) {
+        str += ", ";
+      }
+
+      if (i + 2 == assignment.names.length) {
+        str += " og ";
+      }
+    }
+
+    name.innerText = `Navne: ${str}`;
+  }
 
   const date = document.createElement("div");
   date.innerText = `Dato: ${new Date().toLocaleDateString()}`;
@@ -229,11 +248,11 @@ const createPage = () => {
   return { page, content };
 }
 
-const fullRender = async (blocks) => {
+const fullRender = async (blocks, assignment) => {
   blockRefs.clear();
 
   const pages = [];
-  let cur = createPage();
+  let cur = createPage(assignment);
   pages.push(cur);
   let heightUsed = 0;
 
@@ -246,7 +265,7 @@ const fullRender = async (blocks) => {
     const h = measureHeight(clone);
 
     if (heightUsed + h > PAGE_HEIGHT && heightUsed > 0) {
-      cur = createPage();
+      cur = createPage(assignment);
       pages.push(cur);
       heightUsed = 0;
     }
@@ -292,7 +311,7 @@ const patchBlocks = (newBlocks) => {
 let rendering = false;
 let queued = null;
 
-const smartUpdate = async (assignment) => {
+const smartUpdate = async (assignment, force = false) => {
   if (rendering) {
     queued = assignment;
     return;
@@ -301,10 +320,10 @@ const smartUpdate = async (assignment) => {
   const blocks = buildBlocks(assignment);
   const newKeys = blocks.map(blockKey).join(",");
 
-  if (!prevKeys || prevKeys !== newKeys) {
+  if (force || !prevKeys || prevKeys !== newKeys) {
     rendering = true;
     lastScrollY = window.scrollY;
-    await fullRender(blocks);
+    await fullRender(blocks, assignment);
     prevKeys = newKeys;
     rendering = false;
     requestAnimationFrame(() => requestAnimationFrame(() => window.scrollTo(0, lastScrollY)));
@@ -333,6 +352,12 @@ new QWebChannel(qt.webChannelTransport, function(channel) {
     lastScrollY = window.scrollY;
     // console.log("Last scroll pos: " + lastScrollPos);
     smartUpdate(JSON.parse(assignment));
+  })
+
+  bridge.updatePagesFull.connect(function(assignment) {
+    lastScrollY = window.scrollY;
+    // Haha no longer smart. Stupid
+    smartUpdate(JSON.parse(assignment), true);
   })
 
   bridge.jsReady();

@@ -29,6 +29,7 @@ struct Task {
 struct Assignment {
   QString title = "New Assignment";
   std::vector<std::unique_ptr<Task>> tasks;
+  std::vector<QString> names;
 
   Task* addTask(QString title = "New Task") {
     auto t = std::make_unique<Task>();

@@ -36,6 +36,8 @@ private:
   void load();
   void test();
 
+  void openNameDialog();
+
   QWidget* scrollContainer;
   QVBoxLayout* scrollLayout;
   QScrollArea* scrollArea;

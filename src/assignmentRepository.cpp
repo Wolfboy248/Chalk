@@ -10,6 +10,14 @@ void AssignmentRepository::save(const Assignment& assignment, const QString& pat
 
   root.addValue("title", assignment.title.toStdString());
 
+  XDFNode names{"names"};
+  int idx = 0;
+  for (const auto& n : assignment.names) {
+    names.addValue("name_" + std::to_string(idx), n.toStdString());
+    idx++;
+  }
+  root.append(names);
+
   XDFNode tasks{"tasks"};
   int i = 0;
   for (const auto& t : assignment.tasks) {
@@ -57,6 +65,10 @@ Assignment AssignmentRepository::load(const QString& path) {
 
     std::string title = root.getValues()["title"];
     assignment.title = QString{title.c_str()};
+
+    for (auto& [_, n] : root.getChildren().find("names")->second.getValues()) {
+      assignment.names.push_back(QString{n.c_str()});
+    }
 
     auto tasks = root.getChildren().find("tasks")->second;
     std::vector<std::pair<int, XDFNode>> tasksOrdered;

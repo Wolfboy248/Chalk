@@ -9,6 +9,8 @@
 #include <assignmentRepository.hpp>
 
 #include <QTimer>
+#include <QLabel>
+#include <QPushButton>
 
 #include <QApplication>
 #include <QToolBar>
@@ -66,6 +68,62 @@ void Editor::save() {
 
   AssignmentRepository::save(assignment, currentFile);
   setWindowTitle(WINDOW_TITLE_PREFIX + currentFile + " - " + assignment.title);
+}
+
+void Editor::openNameDialog() {
+  QDialog* dialog = new QDialog(this);
+  dialog->setWindowTitle("Assignment names");
+  dialog->setWindowFlags(Qt::Dialog);
+  dialog->setWindowModality(Qt::ApplicationModal);
+
+  dialog->setMinimumSize(400, 300);
+
+  QVBoxLayout* layout = new QVBoxLayout(dialog);
+
+  QListWidget* list = new QListWidget(dialog);
+  list->setEditTriggers(
+    QAbstractItemView::DoubleClicked | QAbstractItemView::EditKeyPressed | QAbstractItemView::SelectedClicked
+  );
+  layout->addWidget(list);
+
+  auto* addBtn = new QPushButton("Add", dialog);
+  auto* removeBtn = new QPushButton("Remove", dialog);
+
+  auto* btnLayout = new QHBoxLayout();
+  btnLayout->addWidget(addBtn);
+  btnLayout->addWidget(removeBtn);
+
+  layout->addLayout(btnLayout);
+
+  for (const auto& s : assignment.names) {
+    list->addItem(s);
+  }
+
+  connect(addBtn, &QPushButton::clicked, dialog, [&]() {
+    auto* item = new QListWidgetItem("Anders Andersen");
+    item->setFlags(item->flags() | Qt::ItemIsEditable);
+    list->addItem(item);
+    list->setCurrentItem(item);
+    list->editItem(item);
+  });
+  connect(removeBtn, &QPushButton::clicked, dialog, [&]() {
+    delete list->takeItem(list->currentRow());
+  });
+
+  connect(dialog, &QDialog::finished, this, [&](int result) {
+    // if (result != QDialog::Accepted) return;
+    assignment.names.clear();
+    for (int i = 0; i < list->count(); i++) {
+      assignment.names.push_back(list->item(i)->text());
+    }
+
+    pagesBridge->updateFull();
+  });
+
+  dialog->adjustSize();
+  dialog->move(this->geometry().center() - dialog->rect().center());
+
+  dialog->exec();
 }
 
 void Editor::saveAs() {
@@ -160,6 +218,8 @@ void Editor::setupMenu() {
   QMenu* editMenu = menuBar()->addMenu("&Edit");
   editMenu->addAction("Undo");
   editMenu->addAction("Redo");
+  editMenu->addSeparator();
+  editMenu->addAction("Names...", this, &Editor::openNameDialog);
 }
 
 void Editor::setupToolbar() {
