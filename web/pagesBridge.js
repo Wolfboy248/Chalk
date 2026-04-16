@@ -171,7 +171,7 @@ const blockKey = (block) => {
 
 // element creation
 const katexRender = (el, latex) => {
-  window.katex.render(latex, el, { throwOnError: false });
+  window.katex.render(latex, el, { throwOnError: false, displayMode: false });
 }
 
 const createElement = (block) => {

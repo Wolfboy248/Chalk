@@ -29,6 +29,10 @@ body {
   margin: 10mm;
 }
 
+.katex {
+  font-size: 1.4em;
+}
+
 #probe {
   position: absolute;
   visibility: hidden;
