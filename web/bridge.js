@@ -56,10 +56,13 @@ function latexToMathjs(latex) {
     .replace(/\\cos/g, "cos")
     .replace(/\\arctan/g, "atan")
     .replace(/\\tan/g, "tan")
+    .replace(/\\int/g, "int")
     .replace(/\\pi/g, "pi")
     .replace(/\\degree/g, " deg")
     // .replace(/\\degree/g, "")
     .replace(/\\frac\{([^}]+)\}\{([^}]+)\}/g, '($1)/($2)')
+    .replace(/\\vec\{([^}]+)\}/g, '$1_vec')
+    .replace(/\\angle\s*([a-zA-Z]+)/g, '$1_angle')
     .replace(/\\sqrt\{([^}]+)\}/g, 'sqrt($1)')
 
     .replace(/([0-9])\s*(ml|l|L|mol|cm|m|kg|V)/g, "$1 $2")
@@ -360,7 +363,7 @@ function renderTask(task) {
     container.appendChild(row);
 
     var mf = MQ.MathField(mqSpan, {
-      autoCommands: 'pi theta sqrt sum angle degree Updownarrow underline',
+      autoCommands: 'pi theta sqrt sum angle degree Updownarrow underline vec',
       charsThatBreakOutOfSupSub: '+-=<>',
       autoSubscriptNumerals: true,
       autoOperatorNames: 'sin cos tan asin acos atan arcsin arccos arctan',
