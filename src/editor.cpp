@@ -329,6 +329,7 @@ void Editor::setupDocks() {
 void Editor::onTaskSelected(Task* task) {
   selectedTask = task;
   mathDock->setTask(task);
+  pagesBridge->scrollToTask(task);
   if (!task) return;
 }
 

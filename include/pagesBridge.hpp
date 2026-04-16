@@ -24,6 +24,12 @@ public slots:
     emit setBgCol(str);
   }
 
+  void scrollToTask(Task* task) {
+    QJsonObject t = taskToJson(task);
+    QJsonDocument doc(t);
+    emit scrollToTask(doc.toJson(QJsonDocument::Compact));
+  }
+
   void jsReady() {
     setBg(
       QApplication::palette().color(QPalette::Window).name()
@@ -71,6 +77,8 @@ signals:
   void setBgCol(const QString& str);
   void updatePages(const QString& assignmentJson);
   void updatePagesFull(const QString& assignmentJson);
+
+  void scrollToTask(const QString& taskJson);
 
   void updatedTaskTitle();
 

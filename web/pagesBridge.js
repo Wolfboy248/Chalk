@@ -30,10 +30,52 @@ const hasVariables = (expr) => {
   return /[a-zA-Z]/.test(expr);
 }
 
+function easeInOutCubic(x) {
+  return x < 0.5 ? 4 * x * x * x : 1 - Math.pow(-2 * x + 2, 3) / 2;
+}
+
+function scrollToSmoothly(pos, time) {
+  var startPos = window.pageYOffset;
+  var start = null;
+  if(time == null) time = 500;
+  pos = +pos;
+  time = +time;
+  window.requestAnimationFrame(function step(currentTime) {
+    start = !start ? currentTime : start;
+    var progress = currentTime - start;
+
+    let t = Math.min(progress / time, 1);
+    let eased = easeInOutCubic(t);
+
+    let y = startPos + (pos - startPos) * eased;
+
+    window.scrollTo(0, y);
+
+    if (progress < time) {
+        window.requestAnimationFrame(step);
+    } else {
+        window.scrollTo(0, pos);
+    }
+  });
+}
+
+const scrollToTask = (task) => {
+  const el = document.getElementById(`task:${task.id}`);
+  if (!el) return;
+
+  const top = el.getBoundingClientRect().top + window.pageYOffset;
+
+  scrollToSmoothly(top, 200);
+  // el.scrollIntoView({
+  //   behavior: "smooth",
+  //   block: "start",
+  // });
+}
+
 // Formula latex
 const buildLatex = (f) => {
   let latex = f.latex;
-  console.log("Latex: " + f.latex);
+  // console.log("Latex: " + f.latex);
   if (f.result != null && f.result != "") {
     const { lhs, rhs } = splitEquation(f.latex);
     if (rhs && hasVariables(rhs) && f.error != "__DO_NOT_SHOW__") {
@@ -144,6 +186,8 @@ const createElement = (block) => {
       const el = document.createElement("h2");
       el.contentEditable = "true";
       el.innerText = block.text;
+      el.id = "task:" + block.id;
+      el.className = "task-title";
       return el;
     }
     case "explanation": {
@@ -406,6 +450,10 @@ new QWebChannel(qt.webChannelTransport, function(channel) {
     lastScrollY = window.scrollY;
     // Haha no longer smart. Stupid
     smartUpdate(JSON.parse(assignment), true);
+  })
+  
+  bridge.scrollToTask.connect(function(task) {
+    scrollToTask(JSON.parse(task));
   })
 
   bridge.jsReady();
