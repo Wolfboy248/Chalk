@@ -26,6 +26,8 @@
 #include <QPrintDialog>
 #include <QPainter>
 
+#include <graph.hpp>
+
 #include <QLineEdit>
 
 #include <QDebug>
@@ -50,6 +52,11 @@ Editor::Editor(QWidget* parent) : QMainWindow(parent) {
   setupMenu();
   setupToolbar();
   setupCentralWidget();
+  setDockOptions(
+    QMainWindow::AllowTabbedDocks |
+    QMainWindow::AllowNestedDocks |
+    QMainWindow::AnimatedDocks
+  );
   setupDocks();
   setWindowTitle(WINDOW_TITLE_PREFIX + QString("unsaved*"));
 
@@ -211,7 +218,7 @@ void Editor::setupMenu() {
   connect(exportAction, &QAction::triggered, this, &Editor::exportToPdf);
 
   fileMenu->addAction(exportAction);
-  fileMenu->addAction("Update", this, &Editor::test);
+  fileMenu->addAction("Update document", this, &Editor::test);
   fileMenu->addSeparator();
   fileMenu->addAction("Exit", qApp, &QApplication::quit);
 
@@ -235,6 +242,8 @@ void Editor::setupToolbar() {
 }
 
 void Editor::setupCentralWidget() {
+  QTabWidget* tabs = new QTabWidget(this);
+
   pagesContainer = new QWebEngineView(this);
   QWebEngineView* container = pagesContainer;
   pagesBridge = new PagesBridge(this);
@@ -243,7 +252,7 @@ void Editor::setupCentralWidget() {
   channel->registerObject("bridge", bridge);
   container->page()->setWebChannel(channel);
   bridge->setAssignment(&assignment);
-  setCentralWidget(container);
+  // setCentralWidget(container);
   // container->setUrl(QUrl("qrc:/web/pages.html"));
   container->setUrl(QUrl::fromLocalFile(
     QString(
@@ -255,6 +264,14 @@ void Editor::setupCentralWidget() {
       QWidget::palette().color(QWidget::backgroundRole()).name()
     );
   });
+
+  GraphDockWidget* graphWidget = new GraphDockWidget(this);
+  addDockWidget(Qt::DockWidgetArea::TopDockWidgetArea, graphWidget);
+
+  tabs->addTab(container, "Document");
+  tabs->addTab(graphWidget, "Graph");
+
+  setCentralWidget(tabs);
 }
 
 void Editor::setupDocks() {
@@ -265,7 +282,7 @@ void Editor::setupDocks() {
   connect(navigator, &NavigatorWidget::changed, [&]() {
     // onTaskSelected(selectedTask);
     // qDebug() << "Current index: " 
-    logAssignment(assignment);
+    // logAssignment(assignment);
     pagesBridge->update();
   });
   addDockWidget(Qt::RightDockWidgetArea, navigator);
@@ -279,6 +296,16 @@ void Editor::setupDocks() {
     &NavigatorWidget::taskSelected,
     this,
     &Editor::onTaskSelected
+  );
+
+  connect(
+    navigator,
+    &NavigatorWidget::changed,
+    [&]() {
+      if (assignment.tasks.size() == 0) {
+        mathDock->setTask(nullptr);
+      }
+    }
   );
 
   connect(

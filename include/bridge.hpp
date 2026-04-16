@@ -19,7 +19,10 @@ public:
 
   void setTask(Task* task) {
     mTask = task;
-    if (!task) return;
+    if (!task) {
+      emit taskChanged("null");
+      return;
+    };
     emit taskChanged(taskToJson(task));
   }
 

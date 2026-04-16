@@ -5,6 +5,12 @@
 #include <QWebEngineView>
 
 MathInputDock::MathInputDock(QWidget* parent) : QDockWidget("Math Input", parent) {
+  setAllowedAreas(Qt::AllDockWidgetAreas);
+  setFeatures(
+    QDockWidget::DockWidgetMovable |
+    QDockWidget::DockWidgetFloatable
+  );
+
   QWebEngineView* view = new QWebEngineView(this);
   setWidget(view);
   setMinimumWidth(400);
@@ -20,6 +26,10 @@ MathInputDock::MathInputDock(QWidget* parent) : QDockWidget("Math Input", parent
       (std::filesystem::current_path() / "web/index.html").string().c_str()
     )
   ));
+
+  connect(view, &QWebEngineView::loadFinished, bridge, [&]() {
+    bridge->setTask(lastTask);
+  });
 
   connect(bridge, &Bridge::taskChanged, this, [&]() {
     emit changed();
@@ -41,6 +51,7 @@ MathInputDock::MathInputDock(QWidget* parent) : QDockWidget("Math Input", parent
 
 void MathInputDock::setTask(Task* task) {
   bridge->setTask(task);
+  lastTask = task;
   // qDebug() << "OMG SET TASK?! Task: " << task->title;
 }
 

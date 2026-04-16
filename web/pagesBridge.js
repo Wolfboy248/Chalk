@@ -33,28 +33,25 @@ const hasVariables = (expr) => {
 // Formula latex
 const buildLatex = (f) => {
   let latex = f.latex;
-  if (f.result != null && f.result !== "") {
-    // let latex = f.latex;
-    console.log("Latex: " + f.latex);
-    if (f.result != null && f.result != "") {
-      const { lhs, rhs } = splitEquation(f.latex);
-      if (rhs && hasVariables(rhs)) {
-        if (f.isAnswer) {
-          latex += "=\\underline{\\underline{" + f.result + "}}";
-        } else {
-          latex += "=" + f.result;
-        }
-      } else if (!rhs) {
-        if (f.isAnswer) {
-          latex += "=\\underline{\\underline{" + f.result + "}}";
-        } else {
-          latex += "=" + f.result;
-        }
-      }
-    } else {
+  console.log("Latex: " + f.latex);
+  if (f.result != null && f.result != "") {
+    const { lhs, rhs } = splitEquation(f.latex);
+    if (rhs && hasVariables(rhs) && f.error != "__DO_NOT_SHOW__") {
       if (f.isAnswer) {
-        latex = "\\underline{\\underline{" + latex + "}}";
+        latex += "=\\underline{\\underline{" + f.result + "}}";
+      } else {
+        latex += "=" + f.result;
       }
+    } else if (!rhs) {
+      if (f.isAnswer) {
+        latex += "=\\underline{\\underline{" + f.result + "}}";
+      } else {
+        latex += "=" + f.result;
+      }
+    }
+  } else {
+    if (f.isAnswer) {
+      latex = "\\underline{\\underline{" + latex + "}}";
     }
   }
   //   const rhs = f.latex.split("=")[1]?.trim();
@@ -91,7 +88,18 @@ const buildBlocks = (assignment) => {
     }
   }
 
-  blocks.push({ type: "bilag" });
+  let hasImages = false;
+  for (const task of assignment.tasks) {
+    if (task.images.length > 0) {
+      hasImages = true;
+      break;
+    }
+  }
+
+  if (hasImages) {
+    blocks.push({ type: "bilag" });
+  }
+
 
   for (const task of assignment.tasks) {
     if (task.images.length > 0) {

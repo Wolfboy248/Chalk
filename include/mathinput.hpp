@@ -24,5 +24,6 @@ private:
 
   Assignment* assignment = nullptr;
   Bridge* bridge = nullptr;
+  Task* lastTask = nullptr;
 };
 

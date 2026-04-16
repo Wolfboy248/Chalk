@@ -113,35 +113,74 @@ div:empty::before {
 }
 
 .formula-row .formula-container {
-  flex: 1 1 auto;
-}
-
-.formula-row .input-field {
-  padding: 20px;
-  width: 100%;
-  border-top-left-radius: 12px;
-  border-top-right-radius: 12px;
+  /* flex: 0 0; */
+  display: flex;
+  flex-direction: column;
+  /* align-items: start; */
   background: white;
 }
 
+.formula-container button {
+  color: rgba(200, 200, 200, 1);
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: 16px;
+  padding: 6px 12px;
+}
+
+.formula-container button:hover {
+  color: grey;
+}
+
+.formula-row .input-field {
+  padding: 8px 0px 8px 4px;
+  /* width: 100%; */
+  border-top-left-radius: 12px;
+  border-top-right-radius: 12px;
+  background: white;
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+}
+
+.mq-root-block {
+  white-space: nowrap;
+  overflow: hidden;
+}
+
 .remove-btn {
-  position: absolute;
-  right: 0;
-  top: 0;
-  height: 50%;
+  /* position: absolute; */
+  /* right: 0; */
+  /* top: 0; */
+  /* height: 50%; */
+  flex-shrink: 0;
 }
 
 .result {
-  position: absolute;
-  right: 0;
-  bottom: 0;
+  /* position: absolute; */
+  /* right: 0; */
+  /* bottom: 0; */
   margin-bottom: 8px;
-  margin-right: 8px;
   background-color: rgba(230, 230, 230, 1);
   border-radius: 2px;
   padding: 4px 8px;
   font-size: 12px;
   pointer-events: none;
+  box-shadow: 1px 1px 6px rgba(0,0,0,0.3);
+}
+
+.upper-container {
+  display: flex;
+  align-items: start;
+}
+
+.lower-container {
+  display: flex;
+  align-items: center;
+  justify-content: start;
+  /* margin-bottom: 8px; */
+  margin-left: 8px;
 }
 
 .result.error {
@@ -149,7 +188,11 @@ div:empty::before {
 }
 
 .result.hidden {
+  position: absolute;
   opacity: 0;
+  width: 0;
+  margin: 0;
+  height: 0;
 }
 
 .input-field {

@@ -6,6 +6,12 @@
 #include <editor.hpp>
 
 NavigatorWidget::NavigatorWidget(QWidget* parent) : QDockWidget("Navigator", parent) {
+  setAllowedAreas(Qt::AllDockWidgetAreas);
+  setFeatures(
+    QDockWidget::DockWidgetMovable |
+    QDockWidget::DockWidgetFloatable
+  );
+
   QWidget* container = new QWidget(this);
   QVBoxLayout* layout = new QVBoxLayout(container);
   layout->setContentsMargins(0, 0, 0, 0);
@@ -65,7 +71,7 @@ void NavigatorWidget::setupToolbar() {
   });
 
   connect(toolbar->addAction("Add Image"), &QAction::triggered, this, [&] () {
-    if (!assignment) return;
+    if (!assignment || !tree->currentItem()) return;
     if (assignment->tasks.size() == 0) return;
     Task* currentTask = assignment->tasks[tree->indexOfTopLevelItem(tree->currentItem())].get();
     QString fileName = QFileDialog::getOpenFileName(

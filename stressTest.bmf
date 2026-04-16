@@ -1,0 +1,203 @@
+{
+  "title" "Stress Tester"
+  "version" "0.1.0"  
+
+  names {
+  }
+
+  tasks {    
+
+    task_0 {
+      "order" "0"
+      "title" "Vectors"      
+
+      formulas {        
+
+        formula_1 {
+          "explanation" "Vectors are written by writing 'vec' and then the name of the vector. Use angle brackets to define them."
+          "isAnswer" "0"
+          "latex" "\vec{v}=\left[2;3\right]"
+          "order" "0"
+          "result" ""
+        }
+
+        formula_2 {
+          "explanation" ""
+          "isAnswer" "0"
+          "latex" "\vec{AB}=\left[2;3\right]"
+          "order" "1"
+          "result" ""
+        }
+
+        formula_3 {
+          "explanation" ""
+          "isAnswer" "0"
+          "latex" "\vec{v}+\vec{AB}"
+          "order" "2"
+          "result" "[4; 6]"
+        }
+
+        formula_4 {
+          "explanation" ""
+          "isAnswer" "0"
+          "latex" "\vec{v}\cdot\vec{AB}"
+          "order" "3"
+          "result" "13"
+        }
+
+        formula_5 {
+          "explanation" "'Any' dimensional vectors are supported."
+          "isAnswer" "0"
+          "latex" "\vec{v_1}=\left[2;3;4\right]"
+          "order" "4"
+          "result" ""
+        }
+
+        formula_6 {
+          "explanation" ""
+          "isAnswer" "0"
+          "latex" "\vec{v_2}=\left[4;5;6\right]"
+          "order" "5"
+          "result" ""
+        }
+
+        formula_7 {
+          "explanation" ""
+          "isAnswer" "0"
+          "latex" "\vec{v_1}\cdot\vec{v_2}"
+          "order" "6"
+          "result" "47"
+        }
+      }
+
+      images {
+      }
+    }
+
+    task_16 {
+      "order" "2"
+      "title" "Trigonometry"      
+
+      formulas {        
+
+        formula_17 {
+          "explanation" ""
+          "isAnswer" "0"
+          "latex" "\angle A=70\degree"
+          "order" "0"
+          "result" ""
+        }
+
+        formula_18 {
+          "explanation" ""
+          "isAnswer" "0"
+          "latex" "a=7\ cm"
+          "order" "1"
+          "result" ""
+        }
+
+        formula_19 {
+          "explanation" ""
+          "isAnswer" "0"
+          "latex" "b=5\ cm"
+          "order" "2"
+          "result" ""
+        }
+
+        formula_20 {
+          "explanation" ""
+          "isAnswer" "1"
+          "latex" "\angle B=\arcsin\left(\frac{\sin\left(\angle A\right)}{a}\cdot b\right)"
+          "order" "3"
+          "result" "42,\!16\degree"
+        }
+
+        formula_21 {
+          "explanation" "To be fixed: should not have to write angle B degree."
+          "isAnswer" "1"
+          "latex" "\angle C=180\degree-\angle A-\angle B\degree"
+          "order" "4"
+          "result" "109,\!3\degree"
+        }
+
+        formula_22 {
+          "explanation" ""
+          "isAnswer" "1"
+          "latex" "c=\frac{a}{\sin\left(\angle A\right)}\cdot\sin\left(\angle C\right)"
+          "order" "5"
+          "result" "7,\!032\, cm"
+        }
+      }
+
+      images {
+      }
+    }
+
+    task_8 {
+      "order" "1"
+      "title" "Units"      
+
+      formulas {        
+
+        formula_10 {
+          "explanation" ""
+          "isAnswer" "0"
+          "latex" "P=1300\ W"
+          "order" "1"
+          "result" ""
+        }
+
+        formula_11 {
+          "explanation" ""
+          "isAnswer" "0"
+          "latex" "U=230\ V"
+          "order" "2"
+          "result" ""
+        }
+
+        formula_12 {
+          "explanation" ""
+          "isAnswer" "0"
+          "latex" "c_{vand}=4180\ \frac{J}{kg\cdot\degree C}"
+          "order" "3"
+          "result" ""
+        }
+
+        formula_13 {
+          "explanation" ""
+          "isAnswer" "0"
+          "latex" "\Delta T=\left(100\ \degree C-14\ \degree C\right)"
+          "order" "4"
+          "result" ""
+        }
+
+        formula_14 {
+          "explanation" ""
+          "isAnswer" "0"
+          "latex" "Q=m\cdot c_{vand}\cdot\Delta T"
+          "order" "5"
+          "result" "287,\!6\, kJ"
+        }
+
+        formula_15 {
+          "explanation" ""
+          "isAnswer" "1"
+          "latex" "t=\frac{Q}{P}"
+          "order" "6"
+          "result" "221,\!2\, s"
+        }
+
+        formula_9 {
+          "explanation" ""
+          "isAnswer" "0"
+          "latex" "m=0,8\ kg"
+          "order" "0"
+          "result" ""
+        }
+      }
+
+      images {
+      }
+    }
+  }
+}

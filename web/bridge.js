@@ -50,19 +50,24 @@ function latexToMathjs(latex) {
     .replace(/\\ /g, '')
     .replace(/\\right\)/g, ')')
     .replace(/\\left\(/g, '(')
+    .replace(/\\right\]/g, ']')
+    .replace(/\\left\[/g, '[')
     .replace(/\\arcsin/g, "asin")
     .replace(/\\sin/g, "sin")
     .replace(/\\arccos/g, "acos")
     .replace(/\\cos/g, "cos")
     .replace(/\\arctan/g, "atan")
+    .replace(/\\operatorname\{cross\}/g, "cross")
     .replace(/\\tan/g, "tan")
     .replace(/\\int/g, "int")
     .replace(/\\pi/g, "pi")
     .replace(/\\degree/g, " deg")
+    .replace(/_\{\s*([a-zA-Z]+)\}/g, "_$1")
     // .replace(/\\degree/g, "")
     .replace(/\\frac\{([^}]+)\}\{([^}]+)\}/g, '($1)/($2)')
     .replace(/\\vec\{([^}]+)\}/g, '$1_vec')
     .replace(/\\angle\s*([a-zA-Z]+)/g, '$1_angle')
+    .replace(/\\Delta\s*([a-zA-Z]+)/g, '$1_Delta')
     .replace(/\\sqrt\{([^}]+)\}/g, 'sqrt($1)')
 
     .replace(/([0-9])\s*(ml|l|L|mol|cm|m|kg|V)/g, "$1 $2")
@@ -122,6 +127,7 @@ new QWebChannel(qt.webChannelTransport, function(channel) {
 
       task.formulas.forEach(function(f, i) {
         try {
+          results[i].show = true;
           var expr = latexToMathjs(f.latex);
           // console.log(expr);
           if (expr.trim() === '') return;
@@ -201,12 +207,25 @@ new QWebChannel(qt.webChannelTransport, function(channel) {
               return;
             }
 
+            if (val && val.isUnit) {
+              try {
+                const original = math.evaluate(expr);
+                if (math.equal(val, original)) {
+                  results[i].result = "";
+                  // results[i].error = "__DO_NOT_SHOW__";
+                  return;
+                }
+              } catch {
+
+              }
+            }
+
             console.log(math.format(val, { precision: 4 }));
             results[i].result = mathJsResultToLatex(
               math.format(val, {
                 precision: 4,
                 notation: "auto",
-              }).replace(/\./g, ",").replace(/(\d)\s+(?!deg\b)([a-zA-Z]+)/g, "$1\\, $2")
+              }).replace(/,/g, ";").replace(/\./g, ",\\!").replace(/(\d)\s+(?!deg\b)([a-zA-Z]+)/g, "$1\\, $2")
             );
           } else {
             const formatted = math.format(val, {
@@ -222,7 +241,11 @@ new QWebChannel(qt.webChannelTransport, function(channel) {
               return;
             }
             // val = math.round(val, 10);
-            results[i].result = mathJsResultToLatex(math.format(val, { precision: 4 })).replace(/\./g, ",").replace(/(\d)\s+(?!deg\b)([a-zA-Z]+)/g, "$1\\, $2");
+            results[i].result = mathJsResultToLatex(
+              math.format(val, { precision: 4 })
+            ).replace(/,/g, ";")
+              .replace(/\./g, ",\\!")
+              .replace(/(\d)\s+(?!deg\b)([a-zA-Z]+)/g, "$1\\, $2");
             // results[i].result = math.format(val, { precision: 4 })
           }
 
@@ -265,10 +288,10 @@ new QWebChannel(qt.webChannelTransport, function(channel) {
 })
 
 function renderTask(task) {
-  if (!task) return;
-  console.log(task);
   var container = document.getElementById('formulas');
   container.innerHTML = '';
+  if (!task) return;
+  console.log(task);
   fields = [];
 
   console.log(task.formulas);
@@ -285,9 +308,35 @@ function renderTask(task) {
     formulaContainer.className = "formula-container";
     row.appendChild(formulaContainer);
 
+    const upperContainer = document.createElement("div");
+    upperContainer.className = "upper-container";
+    const lowerContainer = document.createElement("div");
+    lowerContainer.className = "lower-container";
+
+    formulaContainer.appendChild(upperContainer);
+    formulaContainer.appendChild(lowerContainer);
+
     var mqSpan = document.createElement("span");
     mqSpan.className = "input-field";
-    formulaContainer.appendChild(mqSpan);
+    upperContainer.appendChild(mqSpan);
+
+    // remove btn
+    var removeBtn = document.createElement("button");
+    removeBtn.className = "remove-btn"
+    removeBtn.textContent = "X";
+    removeBtn.addEventListener("click", function() {
+      bridge.removeFormula(f.id);
+    });
+    upperContainer.appendChild(removeBtn);
+
+    // Result/error
+    var resultDiv = document.createElement("span");
+    resultDiv.id = "result-" + f.id;
+    resultDiv.className = "result hidden";
+    if (f.result != null && f.result != "") {
+      resultDiv.className = "result";
+    }
+    lowerContainer.appendChild(resultDiv);
 
     let buttonsContainer = document.createElement("div");
     buttonsContainer.className = "buttons-container";
@@ -296,7 +345,6 @@ function renderTask(task) {
     let explanation = document.createElement("input");
     explanation.value = f.explanation;
     explanation.placeholder = "Type explanation here...";
-    // explanation.rows = "0";
 
     const explanationToggleButton = document.createElement("button");
     explanationToggleButton.innerText = "Explanation";
@@ -345,28 +393,13 @@ function renderTask(task) {
     })
     row.appendChild(explanation);
 
-    // remove btn
-    var removeBtn = document.createElement("button");
-    removeBtn.className = "remove-btn"
-    removeBtn.textContent = "X";
-    removeBtn.addEventListener("click", function() {
-      bridge.removeFormula(f.id);
-    });
-    row.appendChild(removeBtn);
-
-    // Result/error
-    var resultDiv = document.createElement("span");
-    resultDiv.id = "result-" + f.id;
-    resultDiv.className = "result";
-    row.appendChild(resultDiv);
-
     container.appendChild(row);
 
     var mf = MQ.MathField(mqSpan, {
-      autoCommands: 'pi theta sqrt sum angle degree Updownarrow underline vec',
+      autoCommands: 'pi theta sqrt sum angle degree Updownarrow underline vec delta Delta omega Omega',
       charsThatBreakOutOfSupSub: '+-=<>',
       autoSubscriptNumerals: true,
-      autoOperatorNames: 'sin cos tan asin acos atan arcsin arccos arctan',
+      autoOperatorNames: 'sin cos tan asin acos atan arcsin arccos arctan cross',
       handlers: {
         edit: function() {
           bridge.updateFormula(f.id, mf.latex());
@@ -437,13 +470,14 @@ function renderResults(results) {
     if (!span) return;
     if (r.error) {
       span.className = "result error";
-      span.textContent = r.error;
+      // span.textContent = r.error;
     } else if (r.result != "") {
       span.className = "result";
-      span.textContent = "= " + r.result;
+      window.katex.render("=" + r.result, span, { throwOnError: false });
+      // span.textContent = "= " + r.result;
     } else {
       span.className = "result hidden";
-      span.textContent = "";
+      // span.textContent = "";
     }
   })
 }
