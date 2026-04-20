@@ -5,7 +5,7 @@
 
 #include <editor.hpp>
 
-NavigatorWidget::NavigatorWidget(QWidget* parent) : QDockWidget("Navigator", parent) {
+NavigatorWidget::NavigatorWidget(Editor* editor, QWidget* parent) : QDockWidget("Navigator", parent), e{editor} {
   setAllowedAreas(Qt::AllDockWidgetAreas);
   setFeatures(
     QDockWidget::DockWidgetMovable |
@@ -65,8 +65,10 @@ void NavigatorWidget::refresh(int selectedId) {
 void NavigatorWidget::setupToolbar() {
   connect(toolbar->addAction("Add"), &QAction::triggered, this, [&]() {
     if (!assignment) return;
-    Task* added = assignment->addTask();
-    refresh(added->id);
+    auto cmd = std::make_unique<AddTaskCommand>("New Task");
+    int addedId = e->cmdMgr()->execute(std::move(cmd), *assignment);
+    // Task* added = assignment->addTask();
+    refresh(addedId);
     emit changed();
   });
 
@@ -90,8 +92,11 @@ void NavigatorWidget::setupToolbar() {
     if (!assignment || !tree->currentItem()) return;
     int removedId = tree->currentItem()->data(0, Qt::UserRole).toInt();
     int removedIndex = tree->indexOfTopLevelItem(tree->currentItem());
+
+    auto cmd = std::make_unique<RemoveTaskCommand>(removedId);
+    e->cmdMgr()->execute(std::move(cmd), *assignment);
     
-    assignment->removeTask(removedId);
+    // assignment->removeTask(removedId);
 
     if (assignment->tasks.empty()) {
       emit taskSelected(nullptr);

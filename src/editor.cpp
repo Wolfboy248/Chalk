@@ -32,6 +32,8 @@
 
 #include <QDebug>
 
+#include <QStatusBar>
+
 #define WINDOW_TITLE_PREFIX "Chalk - "
 
 void logAssignment(const Assignment& a) {
@@ -60,6 +62,8 @@ Editor::Editor(QWidget* parent) : QMainWindow(parent) {
   setupDocks();
   setWindowTitle(WINDOW_TITLE_PREFIX + QString("unsaved*"));
 
+  commandManager = new CommandManager();
+
   // exportToPdf();
 }
 
@@ -74,6 +78,7 @@ void Editor::save() {
   }
 
   AssignmentRepository::save(assignment, currentFile);
+  statusBar()->showMessage("Document saved", 2000);
   setWindowTitle(WINDOW_TITLE_PREFIX + currentFile + " - " + assignment.title);
 }
 
@@ -148,8 +153,23 @@ void Editor::saveAs() {
   }
 
   AssignmentRepository::save(assignment, fileName);
+  statusBar()->showMessage("Document saved", 2000);
   currentFile = fileName;
   setWindowTitle(WINDOW_TITLE_PREFIX + currentFile + " - " + assignment.title);
+}
+
+void Editor::undo() {
+  commandManager->undo(assignment);
+
+  navigator->refresh();
+  pagesBridge->update();
+}
+
+void Editor::redo() {
+  commandManager->redo(assignment);
+
+  navigator->refresh();
+  pagesBridge->update();
 }
 
 void Editor::newAssignment() {
@@ -223,22 +243,31 @@ void Editor::setupMenu() {
   fileMenu->addAction("Exit", qApp, &QApplication::quit);
 
   QMenu* editMenu = menuBar()->addMenu("&Edit");
-  editMenu->addAction("Undo");
-  editMenu->addAction("Redo");
+
+  QAction* undoAction = new QAction("Undo", this);
+  undoAction->setShortcut(QKeySequence::Undo);
+  connect(undoAction, &QAction::triggered, this, &Editor::undo);
+  editMenu->addAction(undoAction);
+
+  QAction* redoAction = new QAction("Redo", this);
+  redoAction->setShortcut(QKeySequence::Redo);
+  connect(redoAction, &QAction::triggered, this, &Editor::redo);
+  editMenu->addAction(redoAction);
+
   editMenu->addSeparator();
   editMenu->addAction("Names...", this, &Editor::openNameDialog);
 }
 
 void Editor::setupToolbar() {
-  QToolBar* toolbar = new QToolBar("Text Formatting");
-  addToolBar(toolbar);
-
-  QAction* boldAction = toolbar->addAction("B");
-  boldAction->setCheckable(true);
-
-  connect(boldAction, &QAction::toggled, [&](bool checked) {
-    // Blah blah balh
-  });
+  // QToolBar* toolbar = new QToolBar("Text Formatting");
+  // addToolBar(toolbar);
+  //
+  // QAction* boldAction = toolbar->addAction("B");
+  // boldAction->setCheckable(true);
+  //
+  // connect(boldAction, &QAction::toggled, [&](bool checked) {
+  //   // Blah blah balh
+  // });
 }
 
 void Editor::setupCentralWidget() {
@@ -253,12 +282,12 @@ void Editor::setupCentralWidget() {
   container->page()->setWebChannel(channel);
   bridge->setAssignment(&assignment);
   // setCentralWidget(container);
-  // container->setUrl(QUrl("qrc:/web/pages.html"));
-  container->setUrl(QUrl::fromLocalFile(
-    QString(
-      (std::filesystem::current_path() / "web/pages.html").string().c_str()
-    )
-  ));
+  container->setUrl(QUrl("qrc:/web/pages.html"));
+  // container->setUrl(QUrl::fromLocalFile(
+  //   QString(
+  //     (std::filesystem::current_path() / "web/pages.html").string().c_str()
+  //   )
+  // ));
   connect(container, &QWebEngineView::loadFinished, this, [bridge, this]() {
     bridge->setBg(
       QWidget::palette().color(QWidget::backgroundRole()).name()
@@ -275,21 +304,20 @@ void Editor::setupCentralWidget() {
 }
 
 void Editor::setupDocks() {
-  navigator = new NavigatorWidget(this);
+  navigator = new NavigatorWidget(this, this);
   navigator->setAssignment(&assignment);
   navigator->setMinimumWidth(400);
-  navigator->setMaximumWidth(600);
+  navigator->setMaximumWidth(800);
   connect(navigator, &NavigatorWidget::changed, [&]() {
-    // onTaskSelected(selectedTask);
-    // qDebug() << "Current index: " 
-    // logAssignment(assignment);
     pagesBridge->update();
   });
   addDockWidget(Qt::RightDockWidgetArea, navigator);
+  resizeDocks({navigator}, {400}, Qt::Horizontal);
 
   mathDock = new MathInputDock(this);
   mathDock->setAssignment(&assignment);
   addDockWidget(Qt::LeftDockWidgetArea, mathDock);
+  resizeDocks({mathDock}, {400}, Qt::Horizontal);
 
   connect(
     navigator,

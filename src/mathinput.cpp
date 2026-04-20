@@ -14,18 +14,21 @@ MathInputDock::MathInputDock(QWidget* parent) : QDockWidget("Math Input", parent
   QWebEngineView* view = new QWebEngineView(this);
   setWidget(view);
   setMinimumWidth(400);
-  setMaximumWidth(600);
+  setMaximumWidth(800);
 
   bridge = new Bridge();
   QWebChannel* channel = new QWebChannel();
   channel->registerObject("bridge", bridge);
   view->page()->setWebChannel(channel);
 
-  view->setUrl(QUrl::fromLocalFile(
-    QString(
-      (std::filesystem::current_path() / "web/index.html").string().c_str()
-    )
-  ));
+  view->setSizePolicy(QSizePolicy::Preferred, QSizePolicy::Expanding);
+
+  // view->setUrl(QUrl::fromLocalFile(
+  //   QString(
+  //     (std::filesystem::current_path() / "web/index.html").string().c_str()
+  //   )
+  // ));
+  view->setUrl(QUrl("qrc:/web/index.html"));
 
   connect(view, &QWebEngineView::loadFinished, bridge, [&]() {
     bridge->setTask(lastTask);

@@ -18,7 +18,7 @@ textarea {
 .buttons-container > .btn {
   border: none;
   font-size: 16px;
-  padding: 0;
+  padding: 6px 0;
   cursor: pointer;
   border-radius: 4px;
   /* background: red; */
@@ -45,9 +45,9 @@ div:empty::before {
   position: relative;
   background: #2F5D8C;
   width: 4px;
-  height: 100%;
+  height: 180%;
   left: 0;
-  top: 0;
+  top: -40%;
   margin-right: 5px;
 }
 
@@ -58,7 +58,15 @@ div:empty::before {
 
 #add-btn {
   font-weight: bold;
-  font-size: 32px
+  font-size: 32px;
+  cursor: pointer;
+  border: none;
+  width: 40px;
+  border-radius: 4px;
+}
+
+#add-btn:hover {
+  background: rgba(0,0,0,0.1);
 }
 
 .header {

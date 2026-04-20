@@ -70,7 +70,7 @@ public slots:
         break;
       }
     }
-    emit updatedTaskTitle();
+    emit updatePages(assignmentToJson(assignment));
   }
 
 signals:
@@ -113,6 +113,7 @@ private:
         {"result", f->result},
         {"error", f->error},
         {"isAnswer", f->isAnswer},
+        {"isIntermediate", f->isIntermediate},
       });
     }
 

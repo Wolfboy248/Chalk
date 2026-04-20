@@ -66,13 +66,49 @@ body {
 }
 
 .image-block {
-  text-align: center;
+  /* text-align: center; */
   margin: 10px 0;
+  cursor: pointer;
+  width: fit-content;
+  position: relative;
 }
 
 .image-block img {
   max-width: 100%;
   max-height: 200px;
+}
+
+.image-block::before {
+  content: '';
+  position: absolute;
+  background: rgba(0, 0, 0, 0);
+  width: 100%;
+  height: 100%;
+  top: 0;
+  left: 0;
+  z-index: 100;
+  transition: all 0.2s ease;
+}
+
+.image-block::after {
+  content: 'X';
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  color: white;
+  z-index: 101;
+  opacity: 0;
+  transition: all 0.2s ease;
+  font-size: 24px;
+}
+
+.image-block:hover::after {
+  opacity: 1;
+}
+
+.image-block:hover::before {
+  background: rgba(0, 0, 0, 0.5);
 }
 
 .page-header {

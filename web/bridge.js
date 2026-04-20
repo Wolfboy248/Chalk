@@ -40,6 +40,16 @@ var mathField = MQ.MathField(mathFieldSpan, {
   }
 })
 
+function expandPlusMinus(expr) {
+  const parts = expr.split("\\pm");
+  if (parts.length !== 2) return expr;
+
+  const left = parts[0].trim();
+  const right = parts[1].trim();
+
+  return `[(${left}) + (${right}), (${left}) - (${right})]`;
+}
+
 function latexToMathjs(latex) {
   console.log("OMGOMGOMGOGOGOGMG");
   console.log("Input: " + latex);
@@ -76,6 +86,8 @@ function latexToMathjs(latex) {
     .replace(/;/g, ',')
 
     .replace(/\\cdot/g, "*");
+
+  result = expandPlusMinus(result);
 
   console.log("OMGOMGOGMOGOGMOG22222");
   console.log("Output: " + result);
@@ -127,6 +139,7 @@ new QWebChannel(qt.webChannelTransport, function(channel) {
 
       task.formulas.forEach(function(f, i) {
         try {
+          if (f.isIntermediate) return;
           results[i].show = true;
           var expr = latexToMathjs(f.latex);
           // console.log(expr);
@@ -383,6 +396,26 @@ function renderTask(task) {
 
     buttonsContainer.appendChild(answerToggleButton);
 
+    let intermediateToggleBtn = document.createElement("button");
+    intermediateToggleBtn.innerText = "Is Intermediate";
+    intermediateToggleBtn.className = "btn";
+    intermediateToggleBtn._isIntermediate = f.isIntermediate;
+    if (f.isIntermediate) {
+      intermediateToggleBtn.className = "btn active";
+    }
+    intermediateToggleBtn.addEventListener("click", () => {
+      console.log("OMG!");
+      intermediateToggleBtn._isIntermediate = !intermediateToggleBtn._isIntermediate;
+      if (intermediateToggleBtn._isIntermediate) {
+        intermediateToggleBtn.className = "btn active";
+      } else {
+        intermediateToggleBtn.className = "btn";
+      }
+      bridge.toggleIntermediate(f.id);
+    })
+
+    buttonsContainer.appendChild(intermediateToggleBtn);
+
     explanation.className = "explanation";
     explanation.innerText = f.explanation;
     explanation.contentEditable = "true";
@@ -396,7 +429,7 @@ function renderTask(task) {
     container.appendChild(row);
 
     var mf = MQ.MathField(mqSpan, {
-      autoCommands: 'pi theta sqrt sum angle degree Updownarrow underline vec delta Delta omega Omega',
+      autoCommands: 'pi theta sqrt sum angle degree Updownarrow underline vec delta Delta omega Omega pm',
       charsThatBreakOutOfSupSub: '+-=<>',
       autoSubscriptNumerals: true,
       autoOperatorNames: 'sin cos tan asin acos atan arcsin arccos arctan cross',

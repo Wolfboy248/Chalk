@@ -54,6 +54,15 @@ public slots:
     emit updatedExplanation();
   }
 
+  void toggleIntermediate(int id) {
+    // qDebug() << "OMGOMGOMG";
+    if (!mTask) return;
+    for (auto& f : mTask->formulas) {
+      if (f->id == id) { f->isIntermediate = !f->isIntermediate; }
+    }
+    emit taskChanged(taskToJson(mTask));
+  }
+
   void addFormula() {
     if (!mTask) return;
     auto f = assignment->addFormula(mTask);
@@ -131,6 +140,7 @@ private:
         {"result", f->result},
         {"error", f->error},
         {"isAnswer", f->isAnswer},
+        {"isIntermediate", f->isIntermediate},
       });
     }
 

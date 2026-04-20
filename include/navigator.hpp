@@ -7,10 +7,12 @@
 #include <QTreeWidget>
 #include <QToolBar>
 
+class Editor;
+
 class NavigatorWidget : public QDockWidget {
   Q_OBJECT
 public:
-  NavigatorWidget(QWidget* parent = nullptr);
+  NavigatorWidget(Editor* e, QWidget* parent = nullptr);
 
   void setAssignment(Assignment* a);
   void refresh(int selectedId = -1);
@@ -25,6 +27,8 @@ private:
 
   QToolBar* toolbar;
   TaskTreeWidget* tree;
+
+  Editor* e;
 
   bool refreshing = false;
 };

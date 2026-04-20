@@ -18,6 +18,11 @@ class Editor : public QMainWindow {
 public:
   Editor(QWidget* parent = nullptr);
 
+  void undo();
+  void redo();
+
+  CommandManager* cmdMgr() { return commandManager; }
+
 public slots:
   void exportToPdf();
 
@@ -45,6 +50,8 @@ private:
   QListWidget* taskNavigator;
   QWebEngineView* pagesContainer;
   PagesBridge* pagesBridge;
+
+  CommandManager* commandManager;
 
   MathInputDock* mathDock;
   NavigatorWidget* navigator;

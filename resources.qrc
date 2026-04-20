@@ -13,5 +13,8 @@
     <file>web/font/Symbola.otf</file>
     <file>web/bridge.js</file>
     <file>web/pagesBridge.js</file>
+    <file>web/katex/katex.css</file>
+    <file>web/katex/katex.js</file>
+    <file>web/pages.css</file>
   </qresource>
 </RCC>

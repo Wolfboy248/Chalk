@@ -1,121 +1,29 @@
 {
-  "title" "THIS IS NICE!?"
-  "version" "0.1.0"  
+  "title" "OMG!"
+  "version" "0.2.0"  
+
+  names {
+  }
 
   tasks {    
 
     task_0 {
       "order" "0"
-      "title" "Opgave 4.04"      
+      "title" "Test"      
 
       formulas {        
 
         formula_1 {
-          "explanation" "a)"
-          "latex" "C=90\degree"
+          "explanation" ""
+          "isAnswer" "0"
+          "isIntermediate" "0"
+          "latex" "a=2"
           "order" "0"
           "result" ""
-        }
-
-        formula_12 {
-          "explanation" "Man kan bruge Pythagoras læresætning for at finde b:"
-          "latex" "a^2+b^2=c^2"
-          "order" "6"
-          "result" ""
-        }
-
-        formula_13 {
-          "explanation" ""
-          "latex" "\Updownarrow"
-          "order" "7"
-          "result" ""
-        }
-
-        formula_14 {
-          "explanation" ""
-          "latex" "b^2=c^2-a^2"
-          "order" "8"
-          "result" ""
-        }
-
-        formula_15 {
-          "explanation" ""
-          "latex" "\Updownarrow"
-          "order" "9"
-          "result" ""
-        }
-
-        formula_2 {
-          "explanation" ""
-          "latex" "A=47,3\degree"
-          "order" "1"
-          "result" ""
-        }
-
-        formula_3 {
-          "explanation" ""
-          "latex" "c=5,3\ cm"
-          "order" "2"
-          "result" ""
-        }
-
-        formula_4 {
-          "explanation" "Man kan bruge sinusrelationen for at finde a:"
-          "latex" "\frac{a}{\sin\left(A\right)}=\frac{c}{\sin\left(C\right)}"
-          "order" "3"
-          "result" ""
-        }
-
-        formula_5 {
-          "explanation" ""
-          "latex" "\Updownarrow"
-          "order" "4"
-          "result" ""
-        }
-
-        formula_6 {
-          "explanation" ""
-          "latex" "a=\frac{c}{\sin\left(C\right)}\cdot\sin\left(A\right)"
-          "order" "5"
-          "result" "3,895 \  cm"
-        }
-
-        formula_7 {
-          "explanation" "
-"
-          "latex" "b=\sqrt{c^2-a^2}"
-          "order" "10"
-          "result" "3,594 \  cm"
-        }
-
-        formula_8 {
-          "explanation" "Fordi summen af alle vinkler i en trekant skal være lig med 180 grader, kan vi finde B ved at trække C og A fra 180 grader:"
-          "latex" "B=180\degree-C-A"
-          "order" "11"
-          "result" "42,7\degree"
         }
       }
-    }
 
-    task_9 {
-      "order" "1"
-      "title" "Task 5"      
-
-      formulas {        
-
-        formula_10 {
-          "explanation" ""
-          "latex" "f\left(x\right)=5.3x"
-          "order" "0"
-          "result" "f(x)"
-        }
-
-        formula_11 {
-          "explanation" ""
-          "latex" "f\left(5\ cm\right)"
-          "order" "1"
-          "result" "26,5 \  cm"
-        }
+      images {
       }
     }
   }
