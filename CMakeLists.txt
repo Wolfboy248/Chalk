@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.16)
-project(betterMaths)
+project(Chalk)
 
-set(EXE_NAME ${CMAKE_PROJECT_NAME})
+set(TARGET_NAME "Chalk")
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 add_subdirectory(external/xdf)
@@ -22,10 +22,14 @@ file(GLOB_RECURSE PROJECT_SOURCES CONFIGURE_DEPENDS
   src/*.cpp
 )
 
-qt_add_executable(${EXE_NAME}
+qt_add_executable(${TARGET_NAME}
   ${PROJECT_SOURCES}
   resources.qrc
 )
+
+if (WIN32)
+  set_target_properties(${TARGET_NAME} PROPERTIES WIN32_EXECUTABLE ON)
+endif()
 
 # qt_add_resources(${EXE_NAME} "resources"
 #   PREFIX "/"
@@ -36,11 +40,11 @@ qt_add_executable(${EXE_NAME}
 #     web/bridge.js
 # )
 
-target_include_directories(${EXE_NAME} PRIVATE
+target_include_directories(${TARGET_NAME} PRIVATE
   include/
 )
 
-target_link_libraries(${EXE_NAME} PRIVATE
+target_link_libraries(${TARGET_NAME} PRIVATE
   XDF
   Qt6::Widgets
   Qt6::WebEngineWidgets

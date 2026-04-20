@@ -23,12 +23,15 @@ MathInputDock::MathInputDock(QWidget* parent) : QDockWidget("Math Input", parent
 
   view->setSizePolicy(QSizePolicy::Preferred, QSizePolicy::Expanding);
 
-  // view->setUrl(QUrl::fromLocalFile(
-  //   QString(
-  //     (std::filesystem::current_path() / "web/index.html").string().c_str()
-  //   )
-  // ));
+#ifdef NDEBUG
   view->setUrl(QUrl("qrc:/web/index.html"));
+#else
+  view->setUrl(QUrl::fromLocalFile(
+    QString(
+      (std::filesystem::current_path() / "web/index.html").string().c_str()
+    )
+  ));
+#endif
 
   connect(view, &QWebEngineView::loadFinished, bridge, [&]() {
     bridge->setTask(lastTask);

@@ -282,12 +282,17 @@ void Editor::setupCentralWidget() {
   container->page()->setWebChannel(channel);
   bridge->setAssignment(&assignment);
   // setCentralWidget(container);
+
+#ifdef NDEBUG
   container->setUrl(QUrl("qrc:/web/pages.html"));
-  // container->setUrl(QUrl::fromLocalFile(
-  //   QString(
-  //     (std::filesystem::current_path() / "web/pages.html").string().c_str()
-  //   )
-  // ));
+#else
+  container->setUrl(QUrl::fromLocalFile(
+    QString(
+      (std::filesystem::current_path() / "web/pages.html").string().c_str()
+    )
+  ));
+#endif
+
   connect(container, &QWebEngineView::loadFinished, this, [bridge, this]() {
     bridge->setBg(
       QWidget::palette().color(QWidget::backgroundRole()).name()

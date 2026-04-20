@@ -15,6 +15,12 @@
     <file>web/pagesBridge.js</file>
     <file>web/katex/katex.css</file>
     <file>web/katex/katex.js</file>
+    <file>web/katex/fonts/KaTeX_Main-Regular.woff2</file>
+    <file>web/katex/fonts/KaTeX_Main-Regular.woff</file>
+    <file>web/katex/fonts/KaTeX_Main-Regular.ttf</file>
+    <file>web/katex/fonts/KaTeX_Math-Italic.woff2</file>
+    <file>web/katex/fonts/KaTeX_Math-Italic.woff</file>
+    <file>web/katex/fonts/KaTeX_Math-Italic.ttf</file>
     <file>web/pages.css</file>
   </qresource>
 </RCC>
