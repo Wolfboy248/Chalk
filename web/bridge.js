@@ -71,6 +71,7 @@ function latexToMathjs(latex) {
     .replace(/\\tan/g, "tan")
     .replace(/\\int/g, "int")
     .replace(/\\pi/g, "pi")
+    .replace(/\\rho/g, "rho")
     .replace(/\\degree/g, " deg")
     .replace(/_\{\s*([a-zA-Z]+)\}/g, "_$1")
     // .replace(/\\degree/g, "")
@@ -103,6 +104,208 @@ const mathJsResultToLatex = (val) => {
   return res;
 }
 
+function getRHS(expr) {
+  const match = expr.match(/^[a-zA-Z][a-zA-Z0-9]*\s*=\s*(.+)$/);
+  return match ? match[1] : null;
+}
+
+function evaluateFormula(f, i, task, scope, results) {
+  try {
+    if (f.isIntermediate) return;
+
+    results[i].show = true;
+
+    const expr = latexToMathjs(f.latex);
+    if (!expr.trim()) return;
+
+    const assignMatch = getAssignment(expr);
+
+    if (assignMatch && isRedefined(assignMatch, i, task)) {
+      results[i].error = assignMatch + " already defined";
+      return;
+    }
+
+    let val = math.evaluate(expr, scope);
+
+    val = normalizeTrig(val, expr);
+
+    if (assignMatch) {
+      scope[assignMatch] = cloneIfPossible(val);
+    }
+
+    const displayVal = applyUnitOverride(val, f.unitOverride);
+
+    if (shouldHideResult(expr, val)) {
+      results[i].result = "";
+      return;
+    }
+    if (assignMatch && isTrivialAssignment(expr, scope)) {
+      results[i].result = "";
+      return;
+    }
+
+    // if (isTrivialAssignment(expr)) {
+    //   results[i].result = "";
+    //   return;
+    // }
+
+    results[i].result = formatResult(displayVal);
+
+  } catch (e) {
+    results[i].error = e.message;
+    results[i].result = null;
+  }
+}
+
+function hasRealComputation(rhs) {
+  return /[\+\-\*\/\^]|sqrt|sin|cos|tan/.test(rhs);
+}
+
+function isTrivialAssignment(expr, scope) {
+  const rhs = getRHS(expr);
+  if (!rhs) return false;
+
+  // strip whitespace
+  const clean = rhs.replace(/\s+/g, '');
+
+  // CASE 1: contains operators → NOT trivial
+  if (/[\+\-\*\/\^()]/.test(clean)) {
+    return false;
+  }
+
+  // CASE 2: contains functions → NOT trivial
+  if (/sin|cos|tan|sqrt|log|ln/.test(clean)) {
+    return false;
+  }
+
+  // CASE 3: contains variables → NOT trivial
+  const vars = Object.keys(scope || {});
+  if (vars.some(v => clean.includes(v))) {
+    return false;
+  }
+
+  // CASE 4: pure number/unit → trivial
+  return true;
+}
+
+// function isTrivialAssignment(expr, val, scope) {
+//   const rhs = getRHS(expr);
+//   if (!rhs) return false;
+//
+//   try {
+//     const rhsVal = math.evaluate(rhs, scope);
+//
+//     if (val && val.isUnit && rhsVal && rhsVal.isUnit) {
+//       return math.equal(val, rhsVal);
+//     }
+//
+//     return val === rhsVal;
+//   } catch {
+//     return false;
+//   }
+// }
+
+// function isTrivialAssignment(expr) {
+//   const rhs = getRHS(expr);
+//   if (!rhs) return false;
+//
+//   const assignMatch = expr.match(/^([a-zA-Z][a-zA-Z0-9]*)\s*=/);
+//   if (!assignMatch) return false;
+//
+//   const varName = assignMatch[1];
+//
+//   try {
+//     const rhsVal = math.evaluate(rhs, scope);
+//     const fullVal = math.evaluate(expr, scope);
+//
+//     if (rhsVal && rhsVal.isUnit && fullVal && fullVal.isUnit) {
+//       return math.equal(rhsVal, fullVal);
+//     }
+//
+//     return rhsVal === fullVal;
+//   } catch {
+//     return false;
+//   }
+//   // const match = expr.match(/^([a-zA-Z][a-zA-Z0-9]*)\s*=\s*(.+)$/);
+//   // if (!match) return false;
+//   //
+//   // const rhs = match[2];
+//   // return !hasRealComputation(rhs);
+// }
+
+function getAssignment(expr) {
+  const match = expr.match(/^([a-zA-Z][a-zA-Z0-9]*)\s*=/);
+  return match ? match[1] : null;
+}
+
+function isRedefined(varName, index, task) {
+  return task.formulas.slice(0, index).some(prev => {
+    const prevExpr = latexToMathjs(prev.latex);
+    return getAssignment(prevExpr) === varName;
+  });
+}
+
+function cloneIfPossible(val) {
+  return val && val.clone ? val.clone() : val;
+}
+
+function normalizeTrig(val, expr) {
+  if (typeof val === "number" && /\b(asin|acos|atan)\b/.test(expr)) {
+    const deg = math.unit(val, "rad").toNumber("deg");
+    return math.unit(deg, "deg");
+  }
+  return val;
+}
+
+function applyUnitOverride(val, unitOverride) {
+  if (!unitOverride || !unitOverride.trim()) return val;
+
+  // if (unitOverride === "%") {
+  //   if (typeof val === "number") {
+  //     return val * 100;
+  //   }
+  //   if (val && val.isUnit) {
+  //     try {
+  //       const num = val.toNumber();
+  //       return num * 100;
+  //     } catch {
+  //       return val;
+  //     }
+  //   }
+  // }
+
+  try {
+    return val && val.clone ? val.clone().to(unitOverride) : val;
+  } catch {
+    return val;
+  }
+}
+
+function shouldHideResult(expr, val) {
+  const formatted = math.format(val, { precision: 4 });
+  return expr.replace(/\s+/g, '') === formatted.replace(/\s+/g, '');
+}
+
+function formatResult(val) {
+  let str = math.format(val, {
+    precision: 4,
+    notation: "auto"
+  });
+
+  str = str
+    .replace(/,/g, ";")
+    .replace(/\./g, ",\\!")
+    .replace(/(\d)\s+(?!deg\b)([a-zA-Z]+)/g, "$1\\, $2");
+
+  return mathJsResultToLatex(str);
+}
+
+function snapshotScope(scope) {
+  return Object.keys(scope)
+    .map(k => k + ":" + math.format(scope[k]))
+    .join("|");
+}
+
 new QWebChannel(qt.webChannelTransport, function(channel) {
   bridge = channel.objects.bridge;
   window.bridge = channel.objects.bridge;
@@ -121,159 +324,175 @@ new QWebChannel(qt.webChannelTransport, function(channel) {
   })
 
   // AI MADE THIS!!!
+  const MAX_PASSES = 10;
   bridge.evaluateTask.connect(function(json) {
-    console.log("EVALUATING!!!");
-    var task = JSON.parse(json);
-    var MAX_PASSES = 10;
-    var results = task.formulas.map(function(f) {
-      return { id: f.id, result: null, error: null };
-    });
+    const task = JSON.parse(json);
 
-    var scope = {};
-    var prevScope = null;
+    const results = task.formulas.map(f => ({
+      id: f.id,
+      result: null,
+      error: null,
+      show: false
+    }));
 
-    for (var pass = 0; pass < MAX_PASSES; pass++) {
-      var scopeSnapshot = JSON.stringify(scope);
-      if (scopeSnapshot === prevScope) break; // stabilised, no need to continue
-      prevScope = scopeSnapshot;
+    let scope = {};
+    let prevSnapshot = null;
 
-      task.formulas.forEach(function(f, i) {
-        try {
-          if (f.isIntermediate) return;
-          results[i].show = true;
-          var expr = latexToMathjs(f.latex);
-          // console.log(expr);
-          if (expr.trim() === '') return;
+    for (let pass = 0; pass < MAX_PASSES; pass++) {
+      const snapshot = snapshotScope(scope);
+      if (snapshot === prevSnapshot) break;
+      prevSnapshot = snapshot;
 
-          // check for redefinition
-          var assignMatch = expr.match(/^([a-zA-Z][a-zA-Z0-9]*)\s*=/);
-          if (assignMatch) {
-            var varName = assignMatch[1];
-            var alreadyDefinedBy = task.formulas.slice(0, i).find(function(prev) {
-              var prevExpr = latexToMathjs(prev.latex);
-              var prevMatch = prevExpr.match(/^([a-zA-Z][a-zA-Z0-9]*)\s*=/);
-              return prevMatch && prevMatch[1] === varName;
-            });
-            if (alreadyDefinedBy) {
-              results[i].error = varName + ' already defined';
-              return;
-            }
-          }
-
-          if (assignMatch) {
-            const varName = assignMatch[1];
-
-            // if result is plain number but came from trig context, treat as angle
-            if (typeof val === "number" && /\b(asin|acos|atan)\b/.test(expr)) {
-              scope[varName] = val; // already converted to unit above
-            } else if (val && val.isUnit) {
-              scope[varName] = val;
-            } else {
-              scope[varName] = val;
-            }
-          }
-
-          var val = math.evaluate(expr, scope);
-          assignMatch = expr.match(/^([a-zA-Z][a-zA-Z0-9]*)\s*=/);
-
-          if (typeof val === "number") {
-            if (/\b(asin|acos|atan)\b/.test(expr)) {
-              val = math.unit(val, "rad").toNumber("deg");
-              val = math.unit(val, "deg");
-
-              if (assignMatch) {
-                scope[assignMatch[1]] = val;
-              }
-            }
-          }
-
-          if (typeof val === "number") {
-            if (/\b(asin|acos|atan)\b/.test(expr)) {
-              val = math.unit(val, "rad").toNumber("deg");
-              val = math.unit(val, "deg");
-
-              // IMPORTANT: store converted value in scope
-              if (assignMatch) {
-                scope[assignMatch[1]] = val;
-              }
-            }
-          }
-
-          if (typeof val === "number") {
-            if (/asin|acos|atan/.test(expr)) {
-              val = math.unit(val, "rad").toNumber("deg");
-              val = math.unit(val, "deg");
-            }
-          }
-
-          if (val && val.isUnit) {
-            const formatted = math.format(val, {
-              precision: 4,
-              notation: "auto"
-            });
-
-            const normalizedInput = expr.replace(/\s+/g, '');
-            const normalizedOutput = formatted.replace(/\s+/g, '');
-
-            if (normalizedInput.endsWith(normalizedOutput)) {
-              results[i].result = "";
-              return;
-            }
-
-            if (val && val.isUnit) {
-              try {
-                const original = math.evaluate(expr);
-                if (math.equal(val, original)) {
-                  results[i].result = "";
-                  // results[i].error = "__DO_NOT_SHOW__";
-                  return;
-                }
-              } catch {
-
-              }
-            }
-
-            console.log(math.format(val, { precision: 4 }));
-            results[i].result = mathJsResultToLatex(
-              math.format(val, {
-                precision: 4,
-                notation: "auto",
-              }).replace(/,/g, ";").replace(/\./g, ",\\!").replace(/(\d)\s+(?!deg\b)([a-zA-Z]+)/g, "$1\\, $2")
-            );
-          } else {
-            const formatted = math.format(val, {
-              precision: 4,
-              notation: "auto"
-            });
-
-            const normalizedInput = expr.replace(/\s+/g, '');
-            const normalizedOutput = formatted.replace(/\s+/g, '');
-
-            if (normalizedInput.endsWith(normalizedOutput)) {
-              results[i].result = "";
-              return;
-            }
-            // val = math.round(val, 10);
-            results[i].result = mathJsResultToLatex(
-              math.format(val, { precision: 4 })
-            ).replace(/,/g, ";")
-              .replace(/\./g, ",\\!")
-              .replace(/(\d)\s+(?!deg\b)([a-zA-Z]+)/g, "$1\\, $2");
-            // results[i].result = math.format(val, { precision: 4 })
-          }
-
-          // results[i].result = math.format(val, { precision: 10 });
-          // results[i].error = null;
-        } catch(e) {
-          // console.error(e.message);
-          results[i].error = e.message;
-          results[i].result = null;
-        }
+      task.formulas.forEach((f, i) => {
+        evaluateFormula(f, i, task, scope, results);
       });
     }
 
     bridge.receiveResults(JSON.stringify(results));
   });
+  // bridge.evaluateTask.connect(function(json) {
+  //   console.log("EVALUATING!!!");
+  //   var task = JSON.parse(json);
+  //   var MAX_PASSES = 10;
+  //   var results = task.formulas.map(function(f) {
+  //     return { id: f.id, result: null, error: null };
+  //   });
+  //
+  //   var scope = {};
+  //   var prevScope = null;
+  //
+  //   for (var pass = 0; pass < MAX_PASSES; pass++) {
+  //     var scopeSnapshot = JSON.stringify(scope);
+  //     if (scopeSnapshot === prevScope) break; // stabilised, no need to continue
+  //     prevScope = scopeSnapshot;
+  //
+  //     task.formulas.forEach(function(f, i) {
+  //       try {
+  //         if (f.isIntermediate) return;
+  //         results[i].show = true;
+  //         var expr = latexToMathjs(f.latex);
+  //         // console.log(expr);
+  //         if (expr.trim() === '') return;
+  //
+  //         // check for redefinition
+  //         var assignMatch = expr.match(/^([a-zA-Z][a-zA-Z0-9]*)\s*=/);
+  //         if (assignMatch) {
+  //           var varName = assignMatch[1];
+  //           var alreadyDefinedBy = task.formulas.slice(0, i).find(function(prev) {
+  //             var prevExpr = latexToMathjs(prev.latex);
+  //             var prevMatch = prevExpr.match(/^([a-zA-Z][a-zA-Z0-9]*)\s*=/);
+  //             return prevMatch && prevMatch[1] === varName;
+  //           });
+  //           if (alreadyDefinedBy) {
+  //             results[i].error = varName + ' already defined';
+  //             return;
+  //           }
+  //         }
+  //
+  //         var val = math.evaluate(expr, scope);
+  //         assignMatch = expr.match(/^([a-zA-Z][a-zA-Z0-9]*)\s*=/);
+  //
+  //         if (assignMatch) {
+  //           scope[assignMatch[1]] = val && val.clone ? val.clone() : val;
+  //         }
+  //
+  //         if (typeof val === "number" && /\b(asin|acos|atan)\b/.test(expr)) {
+  //           val = math.unit(val, "rad").toNumber("deg");
+  //           val = math.unit(val, "deg");
+  //
+  //           if (assignMatch) {
+  //             scope[assignMatch[1]] = val;
+  //           }
+  //         }
+  //
+  //         if (val && val.isUnit) {
+  //           const formatted = math.format(val, {
+  //             precision: 4,
+  //             notation: "auto"
+  //           });
+  //
+  //           const normalizedInput = expr.replace(/\s+/g, '');
+  //           const normalizedOutput = formatted.replace(/\s+/g, '');
+  //
+  //           if (normalizedInput.endsWith(normalizedOutput)) {
+  //             results[i].result = "";
+  //             return;
+  //           }
+  //
+  //           let displayVal = val;
+  //
+  //           if (f.unitOverride && f.unitOverride.trim() !== "") {
+  //             try {
+  //               displayVal = val.clone().to(f.unitOverride);
+  //             } catch (e) {
+  //
+  //             }
+  //           }
+  //
+  //           // if (val && val.isUnit) {
+  //           //   try {
+  //           //     // const original = math.evaluate(expr);
+  //           //     if (math.equal(displayVal, original)) {
+  //           //       results[i].result = "";
+  //           //       // results[i].error = "__DO_NOT_SHOW__";
+  //           //       return;
+  //           //     }
+  //           //   } catch {
+  //           //
+  //           //   }
+  //           // }
+  //
+  //           console.log(math.format(val, { precision: 4 }));
+  //           results[i].result = mathJsResultToLatex(
+  //             math.format(displayVal, {
+  //               precision: 4,
+  //               notation: "exponential",
+  //             }).replace(/,/g, ";").replace(/\./g, ",\\!").replace(/(\d)\s+(?!deg\b)([a-zA-Z]+)/g, "$1\\, $2")
+  //           );
+  //         } else {
+  //
+  //           let displayVal = val;
+  //
+  //           if (f.unitOverride && f.unitOverride.trim() !== "") {
+  //             try {
+  //               displayVal = val.clone().to(f.unitOverride);
+  //             } catch (e) {
+  //
+  //             }
+  //           }
+  //           const formatted = math.format(val, {
+  //             precision: 4,
+  //             notation: "exponential"
+  //           });
+  //
+  //           const normalizedInput = expr.replace(/\s+/g, '');
+  //           const normalizedOutput = formatted.replace(/\s+/g, '');
+  //
+  //           if (normalizedInput.endsWith(normalizedOutput)) {
+  //             results[i].result = "";
+  //             return;
+  //           }
+  //           // val = math.round(val, 10);
+  //           results[i].result = mathJsResultToLatex(
+  //             math.format(displayVal, { precision: 4, notation: "exponential" })
+  //           ).replace(/,/g, ";")
+  //             .replace(/\./g, ",\\!")
+  //             .replace(/(\d)\s+(?!deg\b)([a-zA-Z]+)/g, "$1\\, $2");
+  //           // results[i].result = math.format(val, { precision: 4 })
+  //         }
+  //
+  //         // results[i].result = math.format(val, { precision: 10 });
+  //         // results[i].error = null;
+  //       } catch(e) {
+  //         // console.error(e.message);
+  //         results[i].error = e.message;
+  //         results[i].result = null;
+  //       }
+  //     });
+  //   }
+  //
+  //   bridge.receiveResults(JSON.stringify(results));
+  // });
 
   // bridge.evaluateTask.connect(function(json) {
   //   var task = JSON.parse(json);
@@ -351,6 +570,17 @@ function renderTask(task) {
     }
     lowerContainer.appendChild(resultDiv);
 
+    let unitOverrideDiv = document.createElement("input");
+    unitOverrideDiv.value = f.unitOverride;
+    unitOverrideDiv.className = "unit-override hidden";
+    unitOverrideDiv.addEventListener("input", () => {
+      bridge.updateUnitoverride(f.id, unitOverrideDiv.value);
+    })
+    if (f.result != null && f.result != "") {
+      unitOverrideDiv.className = "unit-override";
+    }
+    lowerContainer.appendChild(unitOverrideDiv);
+
     let buttonsContainer = document.createElement("div");
     buttonsContainer.className = "buttons-container";
     row.appendChild(buttonsContainer);
@@ -376,6 +606,7 @@ function renderTask(task) {
     })
     buttonsContainer.appendChild(explanationToggleButton);
 
+    // Answer toggle button
     let answerToggleButton = document.createElement("button");
     answerToggleButton.innerText = "Is Answer";
     answerToggleButton.className = "btn";
@@ -393,8 +624,27 @@ function renderTask(task) {
       }
       bridge.toggleAnswer(f.id);
     })
-
     buttonsContainer.appendChild(answerToggleButton);
+
+    // Hiden answer toggle button
+    let hideAnswerBtn = document.createElement("button");
+    hideAnswerBtn.innerText = "Hide Answer";
+    hideAnswerBtn.className = "btn";
+    hideAnswerBtn._hideAnswer = f.hideAnswer;
+    if (f.isAnswer) {
+      hideAnswerBtn.className = "btn active";
+    }
+    hideAnswerBtn.addEventListener("click", () => {
+      // console.log("OMG!");
+      hideAnswerBtn._hideAnswer = !hideAnswerBtn._hideAnswer;
+      if (hideAnswerBtn._hideAnswer) {
+        hideAnswerBtn.className = "btn active";
+      } else {
+        hideAnswerBtn.className = "btn";
+      }
+      bridge.toggleHideAnswer(f.id);
+    })
+    buttonsContainer.appendChild(hideAnswerBtn);
 
     let intermediateToggleBtn = document.createElement("button");
     intermediateToggleBtn.innerText = "Is Intermediate";

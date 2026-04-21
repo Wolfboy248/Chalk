@@ -110,10 +110,12 @@ private:
         {"id", f->id},
         {"latex", f->latex},
         {"explanation", f->explanation},
+        {"unitOverride", f->unitOverride},
         {"result", f->result},
         {"error", f->error},
         {"isAnswer", f->isAnswer},
         {"isIntermediate", f->isIntermediate},
+        {"hideAnswer", f->hideAnswer},
       });
     }
 

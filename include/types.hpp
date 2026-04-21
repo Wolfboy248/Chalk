@@ -17,8 +17,10 @@ struct Formula {
   QString explanation;
   QString result;
   QString error;
+  QString unitOverride;
   bool isIntermediate = false;
   bool isAnswer = false;
+  bool hideAnswer = false;
 };
 
 struct Task {

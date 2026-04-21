@@ -45,11 +45,28 @@ public slots:
     emit updatedExplanation();
   }
 
+  void updateUnitoverride(int id, const QString& unitOverride) {
+    if (!mTask) return;
+    for (auto& f : mTask->formulas) {
+      if (f->id == id) { f->unitOverride = unitOverride; break; }
+    }
+    emit evaluateTask(taskToJson(mTask));
+  }
+
   void toggleAnswer(int id) {
     // qDebug() << "OMGOMGOMG";
     if (!mTask) return;
     for (auto& f : mTask->formulas) {
       if (f->id == id) { f->isAnswer = !f->isAnswer; }
+    }
+    emit updatedExplanation();
+  }
+
+  void toggleHideAnswer(int id) {
+    // qDebug() << "OMGOMGOMG";
+    if (!mTask) return;
+    for (auto& f : mTask->formulas) {
+      if (f->id == id) { f->hideAnswer = !f->hideAnswer; }
     }
     emit updatedExplanation();
   }
@@ -141,6 +158,8 @@ private:
         {"error", f->error},
         {"isAnswer", f->isAnswer},
         {"isIntermediate", f->isIntermediate},
+        {"unitOverride", f->unitOverride},
+        {"hideAnswer", f->hideAnswer},
       });
     }
 

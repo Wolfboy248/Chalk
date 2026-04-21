@@ -77,18 +77,22 @@ const buildLatex = (f) => {
   let latex = f.latex;
   // console.log("Latex: " + f.latex);
   if (f.result != null && f.result != "") {
+    let result = f.result;
+
+    console.log(latex + ": " + f.hideAnswer);
+
     const { lhs, rhs } = splitEquation(f.latex);
-    if (rhs && hasVariables(rhs) && f.error != "__DO_NOT_SHOW__") {
+    if (rhs && hasVariables(rhs) && f.error != "__DO_NOT_SHOW__" && !f.hideAnswer) {
       if (f.isAnswer) {
-        latex += "=\\underline{\\underline{" + f.result + "}}";
+        latex += "=\\underline{\\underline{" + result + "}}";
       } else {
-        latex += "=" + f.result;
+        latex += "=" + result;
       }
     } else if (!rhs) {
-      if (f.isAnswer) {
-        latex += "=\\underline{\\underline{" + f.result + "}}";
+      if (f.isAnswer && !f.hideAnswer) {
+        latex += "=\\underline{\\underline{" + result + "}}";
       } else {
-        latex += "=" + f.result;
+        latex += "=" + result;
       }
     }
   } else {

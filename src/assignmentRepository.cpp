@@ -31,7 +31,9 @@ void AssignmentRepository::save(const Assignment& assignment, const QString& pat
       XDFNode formula{"formula_" + std::to_string(f->id)};
       formula.addValue("latex", f->latex.toStdString());
       formula.addValue("explanation", f->explanation.toStdString());
+      formula.addValue("unitOverride", f->unitOverride.toStdString());
       formula.addValue("isAnswer", std::to_string(f->isAnswer));
+      formula.addValue("hideAnswer", std::to_string(f->hideAnswer));
       formula.addValue("isIntermediate", std::to_string(f->isIntermediate));
       formula.addValue("result", f->result.toStdString());
       formula.addValue("order", std::to_string(j++));
@@ -98,6 +100,14 @@ Assignment AssignmentRepository::load(const QString& path) {
       for (auto& [_, formula] : ordered) {
         std::string latex = formula.getValues()["latex"];
         std::string explanation = formula.getValues()["explanation"];
+        std::string unitOverride = "";
+        if (formula.getValues().find("unitOverride") != formula.getValues().end()) {
+          unitOverride = formula.getValues().find("unitOverride")->second;
+        }
+        std::string hideAnswer = "0";
+        if (formula.getValues().find("hideAnswer") != formula.getValues().end()) {
+          hideAnswer = formulas.getValues().find("hideAnswer")->second;
+        }
         std::string isAnswer = formula.getValues()["isAnswer"];
         std::string isIntermediate = formula.getValues()["isIntermediate"];
         std::string result = formula.getValues()["result"];
@@ -105,10 +115,17 @@ Assignment AssignmentRepository::load(const QString& path) {
         f->latex = QString{latex.c_str()};
         f->result = QString{result.c_str()};
         f->explanation = QString{explanation.c_str()};
+        f->unitOverride = QString{unitOverride.c_str()};
         if (isAnswer == "1") {
           f->isAnswer = true;
         } else {
           f->isAnswer = false;
+        }
+
+        if (hideAnswer == "1") {
+          f->hideAnswer = true;
+        } else {
+          f->hideAnswer = false;
         }
 
         if (isIntermediate == "1") {

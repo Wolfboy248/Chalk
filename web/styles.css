@@ -186,16 +186,20 @@ div:empty::before {
 .lower-container {
   display: flex;
   align-items: center;
-  justify-content: start;
+  justify-content: space-between;
   /* margin-bottom: 8px; */
   margin-left: 8px;
+}
+
+.lower-container > input {
+  width: fit-content;
 }
 
 .result.error {
   opacity: 0;
 }
 
-.result.hidden {
+.result.hidden, .result.error, .unit-override.hidden {
   position: absolute;
   opacity: 0;
   width: 0;
