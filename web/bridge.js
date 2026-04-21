@@ -74,11 +74,11 @@ function latexToMathjs(latex) {
     .replace(/\\degree/g, " deg")
     .replace(/_\{\s*([a-zA-Z]+)\}/g, "_$1")
     // .replace(/\\degree/g, "")
-    .replace(/\\frac\{([^}]+)\}\{([^}]+)\}/g, '($1)/($2)')
     .replace(/\\vec\{([^}]+)\}/g, '$1_vec')
     .replace(/\\angle\s*([a-zA-Z]+)/g, '$1_angle')
     .replace(/\\Delta\s*([a-zA-Z]+)/g, '$1_Delta')
     .replace(/\\sqrt\{([^}]+)\}/g, 'sqrt($1)')
+    .replace(/\\frac\{([^}]+)\}\{([^}]+)\}/g, '($1)/($2)')
 
     .replace(/([0-9])\s*(ml|l|L|mol|cm|m|kg|V)/g, "$1 $2")
 
