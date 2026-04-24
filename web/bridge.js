@@ -72,7 +72,8 @@ function latexToMathjs(latex) {
     .replace(/\\int/g, "int")
     .replace(/\\pi/g, "pi")
     .replace(/\\rho/g, "rho")
-    .replace(/\\degree/g, " deg")
+    // .replace(/([0-9]+(?:\.\d+)?)\\degree/g, '($1 * pi / 180)')
+    .replace(/\\degree/g, " * deg")
     .replace(/_\{\s*([a-zA-Z]+)\}/g, "_$1")
     // .replace(/\\degree/g, "")
     .replace(/\\vec\{([^}]+)\}/g, '$1_vec')
@@ -246,13 +247,18 @@ function isRedefined(varName, index, task) {
 }
 
 function cloneIfPossible(val) {
-  return val && val.clone ? val.clone() : val;
+  if (val && val.isUnit) {
+    return val.clone().to("deg")
+  }
+  return val
+  return val && val.clone ? val.clone().to("deg") : val;
 }
 
 function normalizeTrig(val, expr) {
   if (typeof val === "number" && /\b(asin|acos|atan)\b/.test(expr)) {
-    const deg = math.unit(val, "rad").toNumber("deg");
-    return math.unit(deg, "deg");
+    return val;
+    // const deg = math.unit(val, "rad").toNumber("deg");
+    // return math.unit(deg, "deg");
   }
   return val;
 }
@@ -287,6 +293,10 @@ function shouldHideResult(expr, val) {
 }
 
 function formatResult(val) {
+  // if (typeof val === "number" && isAngleExpression) {
+  //   const deg = val * 180 / Math.PI
+  //   return deg + "\\degree"
+  // }
   let str = math.format(val, {
     precision: 4,
     notation: "auto"
