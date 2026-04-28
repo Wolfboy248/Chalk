@@ -66,6 +66,7 @@ function latexToMathjs(latex) {
     .replace(/\\sin/g, "sin")
     .replace(/\\arccos/g, "acos")
     .replace(/\\cos/g, "cos")
+    .replace(/\\Omega/g, "ohm")
     .replace(/\\arctan/g, "atan")
     .replace(/\\operatorname\{cross\}/g, "cross")
     .replace(/\\tan/g, "tan")
@@ -305,7 +306,8 @@ function formatResult(val) {
   str = str
     .replace(/,/g, ";")
     .replace(/\./g, ",\\!")
-    .replace(/(\d)\s+(?!deg\b)([a-zA-Z]+)/g, "$1\\, $2");
+    .replace(/(\d)\s+(?!deg\b)([a-zA-Z]+)/g, "$1\\, $2")
+    .replace(/ohm/g, "\\Omega");
 
   return mathJsResultToLatex(str);
 }
