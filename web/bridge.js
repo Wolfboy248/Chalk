@@ -124,6 +124,7 @@ function evaluateFormula(f, i, task, scope, results) {
 
     if (assignMatch && isRedefined(assignMatch, i, task)) {
       results[i].error = assignMatch + " already defined";
+      console.error(results[i].error);
       return;
     }
 
@@ -137,14 +138,14 @@ function evaluateFormula(f, i, task, scope, results) {
 
     const displayVal = applyUnitOverride(val, f.unitOverride);
 
-    if (shouldHideResult(expr, val)) {
-      results[i].result = "";
-      return;
-    }
-    if (assignMatch && isTrivialAssignment(expr, scope)) {
-      results[i].result = "";
-      return;
-    }
+    // if (shouldHideResult(expr, val)) {
+    //   results[i].result = "";
+    //   return;
+    // }
+    // if (assignMatch && isTrivialAssignment(expr, scope)) {
+    //   results[i].result = "";
+    //   return;
+    // }
 
     // if (isTrivialAssignment(expr)) {
     //   results[i].result = "";
@@ -291,6 +292,13 @@ function applyUnitOverride(val, unitOverride) {
 function shouldHideResult(expr, val) {
   const formatted = math.format(val, { precision: 4 });
   return expr.replace(/\s+/g, '') === formatted.replace(/\s+/g, '');
+}
+
+function formatLatex(lat) {
+  let str = lat;
+
+  str = str
+    .replace(/\,/g, ",\\!")
 }
 
 function formatResult(val) {
