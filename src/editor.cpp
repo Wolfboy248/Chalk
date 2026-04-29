@@ -12,6 +12,8 @@
 #include <QLabel>
 #include <QPushButton>
 
+#include <QMessageBox>
+
 #include <QApplication>
 #include <QToolBar>
 #include <QMenuBar>
@@ -60,15 +62,51 @@ Editor::Editor(QWidget* parent) : QMainWindow(parent) {
     QMainWindow::AnimatedDocks
   );
   setupDocks();
-  setWindowTitle(WINDOW_TITLE_PREFIX + QString("unsaved*"));
+  updateWindowTitle(true);
+  // setWindowTitle(WINDOW_TITLE_PREFIX + QString("unsaved*"));
 
   commandManager = new CommandManager();
 
   // exportToPdf();
 }
 
+void Editor::closeEvent(QCloseEvent* event) {
+  if (mUnsaved) {
+    auto result = QMessageBox::warning(
+      this,
+      "Unsaved Changes",
+      "You have unsaved changes. Save?",
+      QMessageBox::Save | QMessageBox::Discard | QMessageBox::Cancel
+    );
+
+    if (result == QMessageBox::Save) {
+      save();
+      event->accept();
+    } else if (result == QMessageBox::Cancel) {
+      event->ignore();
+    } else {
+      event->accept();
+    }
+  } else {
+    event->accept();
+  }
+}
+
 void Editor::test() {
   pagesBridge->update();
+}
+
+void Editor::updateWindowTitle(bool somethingChanged) {
+  if (somethingChanged) {
+    if (currentFile == "") {
+      setWindowTitle(WINDOW_TITLE_PREFIX + assignment.title + "*");
+    } else {
+      setWindowTitle(WINDOW_TITLE_PREFIX + currentFile + " - " + assignment.title + "*");
+    }
+  }
+  else {
+    setWindowTitle(WINDOW_TITLE_PREFIX + currentFile + " - " + assignment.title);
+  }
 }
 
 void Editor::save() {
@@ -79,7 +117,20 @@ void Editor::save() {
 
   AssignmentRepository::save(assignment, currentFile);
   statusBar()->showMessage("Document saved", 2000);
-  setWindowTitle(WINDOW_TITLE_PREFIX + currentFile + " - " + assignment.title);
+  updateWindowTitle();
+}
+
+void Editor::updateToDocument(bool softUpdate) {
+  qDebug() << "Change to document detected";
+
+  if (softUpdate) {
+    pagesBridge->update();
+  } else {
+    pagesBridge->updateFull();
+  }
+  navigator->refresh();
+  updateWindowTitle(true);
+  mUnsaved = true;
 }
 
 void Editor::openNameDialog() {
@@ -129,7 +180,8 @@ void Editor::openNameDialog() {
       assignment.names.push_back(list->item(i)->text());
     }
 
-    pagesBridge->updateFull();
+    updateToDocument(false);
+    // pagesBridge->updateFull();
   });
 
   dialog->adjustSize();
@@ -155,34 +207,44 @@ void Editor::saveAs() {
   AssignmentRepository::save(assignment, fileName);
   statusBar()->showMessage("Document saved", 2000);
   currentFile = fileName;
-  setWindowTitle(WINDOW_TITLE_PREFIX + currentFile + " - " + assignment.title);
+  updateWindowTitle();
 }
 
 void Editor::undo() {
   commandManager->undo(assignment);
 
-  navigator->refresh();
-  pagesBridge->update();
+  updateToDocument();
 }
 
 void Editor::redo() {
   commandManager->redo(assignment);
 
-  navigator->refresh();
-  pagesBridge->update();
+  updateToDocument();
+  // navigator->refresh();
+  // pagesBridge->update();
+}
+
+void Editor::setAssignment(Assignment ass) {
+  assignment = std::move(ass);
+  pagesBridge->setAssignment(&assignment);
+  navigator->setAssignment(&assignment);
+  mathDock->setAssignment(&assignment);
 }
 
 void Editor::newAssignment() {
   Assignment ass{};
-  assignment = std::move(ass);
+  setAssignment(std::move(ass));
+  updateToDocument(false);
+  // assignment = std::move(ass);
 
-  setWindowTitle(WINDOW_TITLE_PREFIX + QString("unsaved*"));
-  pagesBridge->setAssignment(&assignment);
-  navigator->setAssignment(&assignment);
-  mathDock->setAssignment(&assignment);
-  pagesBridge->update();
+  // setWindowTitle(WINDOW_TITLE_PREFIX + QString("unsaved*"));
+  // pagesBridge->setAssignment(&assignment);
+  // navigator->setAssignment(&assignment);
+  // mathDock->setAssignment(&assignment);
+  // pagesBridge->update();
 
   currentFile = "";
+  updateWindowTitle(true);
 }
 
 void Editor::load() {
@@ -195,15 +257,17 @@ void Editor::load() {
 
   if (fileName == "") return;
 
+  setAssignment(AssignmentRepository::load(fileName));
   assignment = AssignmentRepository::load(fileName);
   qDebug() << assignment.title;
-  pagesBridge->setAssignment(&assignment);
-  navigator->setAssignment(&assignment);
-  mathDock->setAssignment(&assignment);
-  pagesBridge->update();
-
   currentFile = fileName;
-  setWindowTitle(WINDOW_TITLE_PREFIX + currentFile + " - " + assignment.title);
+  updateToDocument();
+  updateWindowTitle();
+  mUnsaved = false;
+  // pagesBridge->update();
+
+  // updateWindowTitle();
+  // setWindowTitle(WINDOW_TITLE_PREFIX + currentFile + " - " + assignment.title);
 }
 
 void Editor::setupMenu() {
@@ -314,7 +378,7 @@ void Editor::setupDocks() {
   navigator->setMinimumWidth(400);
   navigator->setMaximumWidth(800);
   connect(navigator, &NavigatorWidget::changed, [&]() {
-    pagesBridge->update();
+    updateToDocument();
   });
   addDockWidget(Qt::RightDockWidgetArea, navigator);
   resizeDocks({navigator}, {400}, Qt::Horizontal);
@@ -346,7 +410,8 @@ void Editor::setupDocks() {
     &PagesBridge::updatedTaskTitle,
     this,
     [&]() {
-      navigator->refresh();
+      updateToDocument();
+      // navigator->refresh();
     }
   );
 
@@ -354,7 +419,8 @@ void Editor::setupDocks() {
     mathDock,
     &MathInputDock::changed,
     [&]() {
-      pagesBridge->update();
+      updateToDocument();
+      // pagesBridge->update();
     }
   );
 }

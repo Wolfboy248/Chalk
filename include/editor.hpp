@@ -21,10 +21,14 @@ public:
   void undo();
   void redo();
 
+  void setAssignment(Assignment assignment);
+
   CommandManager* cmdMgr() { return commandManager; }
 
 public slots:
   void exportToPdf();
+
+  void updateToDocument(bool softUpdate = true);
 
 private slots:
   void onTaskSelected(Task* task);
@@ -35,6 +39,8 @@ private:
   void setupCentralWidget();
   void setupDocks();
 
+  void updateWindowTitle(bool somethingChanged = false);
+
   void newAssignment();
   void save();
   void saveAs();
@@ -42,6 +48,9 @@ private:
   void test();
 
   void openNameDialog();
+
+protected:
+  void closeEvent(QCloseEvent* event) override;
 
   QWidget* scrollContainer;
   QVBoxLayout* scrollLayout;
@@ -61,6 +70,8 @@ private:
   QString currentFile = "";
 
   Task* selectedTask = nullptr;
+
+  bool mUnsaved = true;
 
   std::vector<PageWidget*> pages;
 };

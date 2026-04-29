@@ -702,6 +702,7 @@ function renderTask(task) {
       autoCommands: 'pi theta sqrt sum angle degree Updownarrow underline vec delta Delta omega Omega pm',
       charsThatBreakOutOfSupSub: '+-=<>',
       autoSubscriptNumerals: true,
+      restrictMismatchedBrackets: false,
       autoOperatorNames: 'sin cos tan asin acos atan arcsin arccos arctan cross',
       handlers: {
         edit: function() {
@@ -740,6 +741,23 @@ function renderTask(task) {
 
     var textArea = mqSpan.querySelector("textarea");
     textArea.addEventListener("keydown", function(e) {
+      if (e.key === "(" && e.ctrlKey) {
+        e.preventDefault();
+        mf.write("(");
+      }
+      if (e.key === ")" && e.ctrlKey) {
+        e.preventDefault();
+        mf.write(")");
+      }
+      if (e.key === "[" && e.ctrlKey) {
+        e.preventDefault();
+        mf.write("[");
+      }
+      if (e.key === "]" && e.ctrlKey) {
+        e.preventDefault();
+        mf.write("]");
+      }
+
       if (e.key === "Backspace" && mf.latex() === '') {
         e.preventDefault();
 
