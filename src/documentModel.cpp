@@ -124,10 +124,10 @@ bool DocumentModel::load(const QString& path) {
 void DocumentModel::reset() {
   mAssignment = Assignment{};
   setCurrentFile("");
-  markDirty();
   mCommandManager.undoStack.clear();
   mCommandManager.redoStack.clear();
   notifyChange(ChangeType::Structure);
+  markClean();
 }
 
 // === PRIVATE ===

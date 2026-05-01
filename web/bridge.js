@@ -1,805 +1,466 @@
-var bridge = null;
-var MQ = MathQuill.getInterface(2);
-var mathFieldSpan = document.getElementById('math-field');
-var fields = {};
-var idToFocus = null;
-var useDummyData = false;
+"use strict";
 
-var dummyData = {
-  title: "Test",
-  formulas: [
-    {
-      id: 0,
-      latex: "a=2+3",
-      explanation: "This is an explanation"
-    },
-    {
-      id: 1,
-      latex: "b=t^2",
-      explanation: "This is an explanation"
+// ============================================================
+// LaTeX → Math.js  (pure string conversion, no side-effects)
+// ============================================================
+
+const latexToMathjs = (latex) => {
+  let expr = latex
+    .replace(/\\ /g,   '')
+    .replace(/\\right\)/g, ')').replace(/\\left\(/g,  '(')
+    .replace(/\\right\]/g, ']').replace(/\\left\[/g,  '[')
+    .replace(/\\arcsin/g, 'asin').replace(/\\sin/g,   'sin')
+    .replace(/\\arccos/g, 'acos').replace(/\\cos/g,   'cos')
+    .replace(/\\arctan/g, 'atan').replace(/\\tan/g,   'tan')
+    .replace(/\\Omega/g, 'ohm')
+    .replace(/\\operatorname\{cross\}/g, 'cross')
+    .replace(/\\pi/g,  'pi')
+    .replace(/\\rho/g, 'rho')
+    .replace(/\\int/g, 'int')
+    .replace(/\\degree/g, ' * deg')
+    .replace(/_\{\s*([a-zA-Z]+)\}/g,        '_$1')
+    .replace(/\\vec\{([^}]+)\}/g,            '$1_vec')
+    .replace(/\\angle\s*([a-zA-Z]+)/g,       '$1_angle')
+    .replace(/\\Delta\s*([a-zA-Z]+)/g,       '$1_Delta')
+    .replace(/\\sqrt\{([^}]+)\}/g,           'sqrt($1)')
+    .replace(/\\frac\{([^}]+)\}\{([^}]+)\}/g,'($1)/($2)')
+    .replace(/([0-9])\s*(ml|l|L|mol|cm|m|kg|V)/g, '$1 $2')
+    .replace(/(\d),(?=\d)/g, '$1.')
+    .replace(/;/g,     ',')
+    .replace(/\\cdot/g,'*');
+
+  // ±  →  [a+b, a-b]
+  const pmParts = expr.split('\\pm');
+  if (pmParts.length === 2) {
+    const [l, r] = pmParts.map(s => s.trim());
+    expr = `[(${l}) + (${r}), (${l}) - (${r})]`;
+  }
+
+  return expr.trim();
+};
+
+// ============================================================
+// Evaluator  – pure function, no DOM, no bridge calls
+// Returns: Array<{ id, result: string|null, error: string|null }>
+// ============================================================
+
+const evaluateFormulas = (() => {
+  const MAX_PASSES = 10;
+
+  const getAssignment = (expr) =>
+    expr.match(/^([a-zA-Z][a-zA-Z0-9]*)\s*=/)?.[1] ?? null;
+
+  const isRedefined = (varName, index, formulas) =>
+    formulas.slice(0, index).some(f => getAssignment(latexToMathjs(f.latex)) === varName);
+
+  const applyUnitOverride = (val, override) => {
+    if (!override?.trim() || !val?.clone) return val;
+    try { return val.clone().to(override); } catch { return val; }
+  };
+
+  const formatVal = (val) =>
+    math.format(val, { precision: 4, notation: 'auto' })
+      .replace(/,/g,   ';')
+      .replace(/\./g,  ',\\!')
+      .replace(/(\d)\s+(?!deg\b)([a-zA-Z]+)/g, '$1\\, $2')
+      .replace(/ohm/g, '\\Omega')
+      .replace(/ ?deg/g, '\\degree');
+
+  const scopeSnapshot = (scope) =>
+    Object.keys(scope).map(k => `${k}:${math.format(scope[k])}`).join('|');
+
+  return (formulas) => {
+    const results = formulas.map(f => ({ id: f.id, result: null, error: null }));
+    const scope   = {};
+    let prevSnap  = null;
+
+    for (let pass = 0; pass < MAX_PASSES; pass++) {
+      const snap = scopeSnapshot(scope);
+      if (snap === prevSnap) break;
+      prevSnap = snap;
+
+      formulas.forEach((f, i) => {
+        if (f.isIntermediate) return;
+        try {
+          const expr = latexToMathjs(f.latex);
+          if (!expr) return;
+
+          const assignedVar = getAssignment(expr);
+          if (assignedVar && isRedefined(assignedVar, i, formulas)) {
+            results[i].error = `${assignedVar} already defined`;
+            return;
+          }
+
+          let val = math.evaluate(expr, scope);
+
+          // Inverse trig always comes back in radians — promote to a unit
+          if (typeof val === 'number' && /\b(asin|acos|atan)\b/.test(expr)) {
+            val = math.unit(val, 'rad');
+          }
+
+          if (assignedVar) scope[assignedVar] = val?.clone ? val.clone() : val;
+
+          results[i].result = formatVal(applyUnitOverride(val, f.unitOverride));
+        } catch (e) {
+          results[i].error = e.message;
+        }
+      });
     }
-  ]
-}
+    return results;
+  };
+})();
 
-if (useDummyData) {
-  renderTask(dummyData);
-}
+// ============================================================
+// Debounce  – with .flush() to fire immediately on blur
+// ============================================================
 
-const cleanDegrees = (expr) => {
-  return expr.replace(/\\degree/g, "");
-}
+const debounce = (fn, delay = 300) => {
+  let timer;
+  const d    = (...args) => { clearTimeout(timer); timer = setTimeout(() => fn(...args), delay); };
+  d.flush    = (...args) => { clearTimeout(timer); fn(...args); };
+  d.cancel   = ()        => clearTimeout(timer);
+  return d;
+};
 
-var mathField = MQ.MathField(mathFieldSpan, {
-  handlers: {
-    edit: function() {
-      var latex = mathField.latex();
-      if (window.bridge) {
-        window.bridge.receiveLatex(latex);
-      }
+// ============================================================
+// FormulaRow  – owns the DOM subtree for one formula entry
+//
+// Hooks (all provided by TaskRenderer):
+//   onSave(id, latex)            – persist latex to C++ (every keystroke)
+//   onEvaluate()                 – trigger re-evaluation (debounced)
+//   onExplanationChange(id, val) – persist explanation
+//   onUnitOverrideChange(id,val) – persist + re-evaluate
+//   onToggle(kind, id)           – 'answer' | 'hideAnswer' | 'intermediate'
+//   onRemove(id)
+//   onAddAfter(id)
+//   onNavigateUp(id)
+//   onNavigateDown(id)
+// ============================================================
+
+class FormulaRow {
+  constructor(formula, hooks) {
+    this.id       = formula.id;
+    this._hooks   = hooks;
+    this._mf      = null;   // MathQuill field
+    this._mqArea  = null;   // <textarea> inside MQ span (for focus checks)
+    this._resultEl   = null;
+    this._unitEl     = null;
+    this._exprEl     = null;
+    this._showExpr   = false;
+    this.element     = this._build(formula);
+  }
+
+  // ---- Public API called by TaskRenderer ----
+
+  /** Sync DOM from new server-side formula data, skipping focused fields. */
+  update(formula) {
+    if (this._mqArea !== document.activeElement) {
+      if (this._mf.latex() !== (formula.latex ?? ''))
+        this._mf.latex(formula.latex ?? '');
+    }
+    if (this._exprEl !== document.activeElement)
+      this._exprEl.value = formula.explanation ?? '';
+    if (this._unitEl !== document.activeElement)
+      this._unitEl.value = formula.unitOverride ?? '';
+  }
+
+  /** Render an evaluated result (or clear it). */
+  showResult(result, error) {
+    if (error) {
+      this._resultEl.className = 'result error';
+      this._resultEl.textContent = '';
+    } else if (result) {
+      this._resultEl.className = 'result';
+      this._unitEl.className   = 'unit-override';
+      window.katex.render('=' + result, this._resultEl, { throwOnError: false });
+    } else {
+      this._resultEl.className = 'result hidden';
+      this._unitEl.className   = 'unit-override hidden';
     }
   }
-})
 
-function expandPlusMinus(expr) {
-  const parts = expr.split("\\pm");
-  if (parts.length !== 2) return expr;
+  focus() { this._mf?.focus(); }
 
-  const left = parts[0].trim();
-  const right = parts[1].trim();
+  // ---- Private ----
 
-  return `[(${left}) + (${right}), (${left}) - (${right})]`;
+  _build(formula) {
+    const h   = this._hooks;
+    const id  = formula.id;
+
+    // Debounced evaluation trigger — shared for edit + unit override
+    const triggerEval = debounce(() => h.onEvaluate(), 250);
+
+    // ---- Root ----
+    const row = document.createElement('div');
+    row.className = 'formula-row';
+
+    // ---- MathQuill + remove ----
+    const upper = document.createElement('div');
+    upper.className = 'upper-container';
+
+    const mqSpan = document.createElement('span');
+    mqSpan.className = 'input-field';
+
+    const removeBtn = document.createElement('button');
+    removeBtn.className = 'remove-btn';
+    removeBtn.textContent = '✕';
+    removeBtn.addEventListener('click', () => h.onRemove(id));
+
+    upper.append(mqSpan, removeBtn);
+
+    // ---- Result + unit override ----
+    const lower = document.createElement('div');
+    lower.className = 'lower-container';
+
+    this._resultEl = document.createElement('span');
+    this._resultEl.className = 'result hidden';
+
+    this._unitEl = document.createElement('input');
+    this._unitEl.className   = 'unit-override hidden';
+    this._unitEl.placeholder = 'unit';
+    this._unitEl.value       = formula.unitOverride ?? '';
+    this._unitEl.addEventListener('input', () => {
+      h.onUnitOverrideChange(id, this._unitEl.value);
+      triggerEval();
+    });
+
+    lower.append(this._resultEl, this._unitEl);
+
+    const formulaContainer = document.createElement('div');
+    formulaContainer.className = 'formula-container';
+    formulaContainer.append(upper, lower);
+    row.appendChild(formulaContainer);
+
+    // ---- Toggle buttons ----
+    const btnRow = document.createElement('div');
+    btnRow.className = 'buttons-container';
+
+    // Explanation toggle is local UI only
+    const exprBtn = this._makeToggleBtn('Explanation', formula, false, () => {
+      this._showExpr = !this._showExpr;
+      exprBtn.classList.toggle('active', this._showExpr);
+      this._exprEl.classList.toggle('shown', this._showExpr);
+    });
+
+    const answerBtn       = this._makeToggleBtn('Is Answer',    formula, formula.isAnswer,
+      () => h.onToggle('answer', id));
+    const hideAnswerBtn   = this._makeToggleBtn('Hide Answer',  formula, formula.hideAnswer,
+      () => h.onToggle('hideAnswer', id));
+    const intermediateBtn = this._makeToggleBtn('Intermediate', formula, formula.isIntermediate,
+      () => h.onToggle('intermediate', id));
+
+    btnRow.append(exprBtn, answerBtn, hideAnswerBtn, intermediateBtn);
+    row.appendChild(btnRow);
+
+    // ---- Explanation ----
+    this._exprEl = document.createElement('input');
+    this._exprEl.className   = 'explanation';
+    this._exprEl.placeholder = 'Type explanation here...';
+    this._exprEl.value       = formula.explanation ?? '';
+
+    const debouncedExpl = debounce((v) => h.onExplanationChange(id, v), 400);
+    this._exprEl.addEventListener('input', () => debouncedExpl(this._exprEl.value));
+    this._exprEl.addEventListener('blur',  () => debouncedExpl.flush(this._exprEl.value));
+    row.appendChild(this._exprEl);
+
+    // ---- MathQuill ----
+    this._mf = MQ.MathField(mqSpan, {
+      autoCommands:              'pi theta sqrt sum angle degree Updownarrow underline vec delta Delta omega Omega pm',
+      charsThatBreakOutOfSupSub: '+-=<>',
+      autoSubscriptNumerals:     true,
+      restrictMismatchedBrackets: false,
+      autoOperatorNames:         'sin cos tan asin acos atan arcsin arccos arctan cross',
+      handlers: {
+        // Save every keystroke; evaluation is debounced separately
+        edit:      () => { h.onSave(id, this._mf.latex()); triggerEval(); },
+        enter:     () => h.onAddAfter(id),
+        downOutOf: () => h.onNavigateDown(id),
+        upOutOf:   () => h.onNavigateUp(id),
+      }
+    });
+
+    this._mqArea = mqSpan.querySelector('textarea');
+    this._mqArea.addEventListener('keydown', (e) => this._onKeyDown(e, id));
+    this._mf.latex(formula.latex ?? '');
+
+    return row;
+  }
+
+  _makeToggleBtn(label, formula, initialActive, onClick) {
+    const btn = document.createElement('button');
+    btn.className = 'btn' + (initialActive ? ' active' : '');
+    btn.innerText = label;
+    btn.addEventListener('click', () => { onClick(); btn.classList.toggle('active'); });
+    return btn;
+  }
+
+  _onKeyDown(e, id) {
+    if (e.ctrlKey) {
+      const write = { '(': '(', ')': ')', '[': '[', ']': ']' }[e.key];
+      if (write) { e.preventDefault(); this._mf.write(write); return; }
+    }
+    if (e.key === 'Backspace' && this._mf.latex() === '') {
+      e.preventDefault();
+      this._hooks.onRemove(id);
+    }
+  }
 }
 
-function latexToMathjs(latex) {
-  console.log("OMGOMGOMGOGOGOGMG");
-  console.log("Input: " + latex);
-  console.log([...latex]);
-  console.log(latex.length);
+// ============================================================
+// TaskRenderer  – manages the ordered set of FormulaRows
+//
+// All communication with C++ goes through `bridge`.
+// Navigation and evaluation are handled locally.
+// ============================================================
 
-  let result = latex
-    .replace(/\\ /g, '')
-    .replace(/\\right\)/g, ')')
-    .replace(/\\left\(/g, '(')
-    .replace(/\\right\]/g, ']')
-    .replace(/\\left\[/g, '[')
-    .replace(/\\arcsin/g, "asin")
-    .replace(/\\sin/g, "sin")
-    .replace(/\\arccos/g, "acos")
-    .replace(/\\cos/g, "cos")
-    .replace(/\\Omega/g, "ohm")
-    .replace(/\\arctan/g, "atan")
-    .replace(/\\operatorname\{cross\}/g, "cross")
-    .replace(/\\tan/g, "tan")
-    .replace(/\\int/g, "int")
-    .replace(/\\pi/g, "pi")
-    .replace(/\\rho/g, "rho")
-    // .replace(/([0-9]+(?:\.\d+)?)\\degree/g, '($1 * pi / 180)')
-    .replace(/\\degree/g, " * deg")
-    .replace(/_\{\s*([a-zA-Z]+)\}/g, "_$1")
-    // .replace(/\\degree/g, "")
-    .replace(/\\vec\{([^}]+)\}/g, '$1_vec')
-    .replace(/\\angle\s*([a-zA-Z]+)/g, '$1_angle')
-    .replace(/\\Delta\s*([a-zA-Z]+)/g, '$1_Delta')
-    .replace(/\\sqrt\{([^}]+)\}/g, 'sqrt($1)')
-    .replace(/\\frac\{([^}]+)\}\{([^}]+)\}/g, '($1)/($2)')
+class TaskRenderer {
+  constructor(container, bridge) {
+    this._container = container;
+    this._bridge    = bridge;
+    this._rows      = new Map();  // id → FormulaRow
+    this._order     = [];         // ordered list of ids
+    this._task      = null;       // last received task (kept in sync for eval)
+  }
 
-    .replace(/([0-9])\s*(ml|l|L|mol|cm|m|kg|V)/g, "$1 $2")
+  /** Full diff-and-patch from a new task object received from C++. */
+  render(task) {
+    this._task = task;
 
-    .replace(/(\d),(?=\d)/g, '$1.')
-    .replace(/;/g, ',')
-
-    .replace(/\\cdot/g, "*");
-
-  result = expandPlusMinus(result);
-
-  console.log("OMGOMGOGMOGOGMOG22222");
-  console.log("Output: " + result);
-
-  return result.trim();
-}
-
-const mathJsResultToLatex = (val) => {
-  let res = val
-    .replace(/ ?deg/g, "\\degree")
-    // .replace(/\\degree![a-zA-Z], "$1")
-
-  return res;
-}
-
-function getRHS(expr) {
-  const match = expr.match(/^[a-zA-Z][a-zA-Z0-9]*\s*=\s*(.+)$/);
-  return match ? match[1] : null;
-}
-
-function evaluateFormula(f, i, task, scope, results) {
-  try {
-    if (f.isIntermediate) return;
-
-    results[i].show = true;
-
-    const expr = latexToMathjs(f.latex);
-    if (!expr.trim()) return;
-
-    const assignMatch = getAssignment(expr);
-
-    if (assignMatch && isRedefined(assignMatch, i, task)) {
-      results[i].error = assignMatch + " already defined";
-      console.error(results[i].error);
+    if (!task) {
+      this._clear();
       return;
     }
 
-    let val = math.evaluate(expr, scope);
+    const newIds = task.formulas.map(f => f.id);
 
-    val = normalizeTrig(val, expr);
-
-    if (assignMatch) {
-      scope[assignMatch] = cloneIfPossible(val);
+    // Remove rows that no longer exist
+    for (const id of this._order) {
+      if (!newIds.includes(id)) {
+        this._rows.get(id)?.element.remove();
+        this._rows.delete(id);
+      }
     }
 
-    const displayVal = applyUnitOverride(val, f.unitOverride);
+    // Create new rows / patch existing ones
+    for (const formula of task.formulas) {
+      if (this._rows.has(formula.id)) {
+        this._rows.get(formula.id).update(formula);
+      } else {
+        this._rows.set(formula.id, new FormulaRow(formula, this._makeHooks()));
+      }
+    }
 
-    // if (shouldHideResult(expr, val)) {
-    //   results[i].result = "";
-    //   return;
-    // }
-    // if (assignMatch && isTrivialAssignment(expr, scope)) {
-    //   results[i].result = "";
-    //   return;
-    // }
+    // Ensure DOM order matches server order (appendChild moves existing nodes)
+    for (const formula of task.formulas) {
+      this._container.appendChild(this._rows.get(formula.id).element);
+    }
 
-    // if (isTrivialAssignment(expr)) {
-    //   results[i].result = "";
-    //   return;
-    // }
+    this._order = newIds;
+    this._evaluate(); // initial evaluation when task loads
+  }
 
-    results[i].result = formatResult(displayVal);
+  focus(id) { this._rows.get(id)?.focus(); }
 
-  } catch (e) {
-    results[i].error = e.message;
-    results[i].result = null;
+  applyResults(results) {
+    for (const r of results) this._rows.get(r.id)?.showResult(r.result, r.error);
+  }
+
+  // ---- Private ----
+
+  _evaluate() {
+    if (!this._task) return;
+    const results = evaluateFormulas(this._task.formulas);
+    this.applyResults(results);
+    // Send back to C++ so results persist in the Assignment struct
+    this._bridge.receiveResults(JSON.stringify(results));
+  }
+
+  _navigateDown(fromId) {
+    const idx = this._order.indexOf(fromId);
+    if (idx < this._order.length - 1) {
+      this.focus(this._order[idx + 1]);
+    } else {
+      // At the last row: ask C++ to create a new formula, focus follows via focusFormula signal
+      this._bridge.addFormulaAfter(fromId);
+    }
+  }
+
+  _navigateUp(fromId) {
+    const idx = this._order.indexOf(fromId);
+    if (idx > 0) this.focus(this._order[idx - 1]);
+  }
+
+  _clear() {
+    this._container.innerHTML = '';
+    this._rows.clear();
+    this._order = [];
+    this._task  = null;
+  }
+
+  /** Hook object passed to each FormulaRow. Closures capture `this` safely. */
+  _makeHooks() {
+    const bridge = this._bridge;
+    return {
+      onSave: (id, latex) => {
+        bridge.updateFormula(id, latex);
+        // Keep local task in sync so _evaluate() always sees current latex
+        const f = this._task?.formulas.find(f => f.id === id);
+        if (f) f.latex = latex;
+      },
+
+      onEvaluate: () => this._evaluate(),
+
+      onExplanationChange: (id, val) => {
+        bridge.updateExplanation(id, val);
+        const f = this._task?.formulas.find(f => f.id === id);
+        if (f) f.explanation = val;
+      },
+
+      onUnitOverrideChange: (id, val) => {
+        bridge.updateUnitoverride(id, val);
+        const f = this._task?.formulas.find(f => f.id === id);
+        if (f) f.unitOverride = val;
+      },
+
+      onToggle: (kind, id) => {
+        const calls = {
+          answer:       () => bridge.toggleAnswer(id),
+          hideAnswer:   () => bridge.toggleHideAnswer(id),
+          intermediate: () => bridge.toggleIntermediate(id),
+        };
+        calls[kind]?.();
+        // C++ will emit taskChanged which re-renders and re-evaluates
+      },
+
+      onRemove:       (id)  => bridge.removeFormula(id),
+      onAddAfter:     (id)  => bridge.addFormulaAfter(id),
+      onNavigateDown: (id)  => this._navigateDown(id),
+      onNavigateUp:   (id)  => this._navigateUp(id),
+    };
   }
 }
 
-function hasRealComputation(rhs) {
-  return /[\+\-\*\/\^]|sqrt|sin|cos|tan/.test(rhs);
-}
+// ============================================================
+// Bootstrap
+// ============================================================
 
-function isTrivialAssignment(expr, scope) {
-  const rhs = getRHS(expr);
-  if (!rhs) return false;
-
-  // strip whitespace
-  const clean = rhs.replace(/\s+/g, '');
-
-  // CASE 1: contains operators → NOT trivial
-  if (/[\+\-\*\/\^()]/.test(clean)) {
-    return false;
-  }
-
-  // CASE 2: contains functions → NOT trivial
-  if (/sin|cos|tan|sqrt|log|ln/.test(clean)) {
-    return false;
-  }
-
-  // CASE 3: contains variables → NOT trivial
-  const vars = Object.keys(scope || {});
-  if (vars.some(v => clean.includes(v))) {
-    return false;
-  }
-
-  // CASE 4: pure number/unit → trivial
-  return true;
-}
-
-// function isTrivialAssignment(expr, val, scope) {
-//   const rhs = getRHS(expr);
-//   if (!rhs) return false;
-//
-//   try {
-//     const rhsVal = math.evaluate(rhs, scope);
-//
-//     if (val && val.isUnit && rhsVal && rhsVal.isUnit) {
-//       return math.equal(val, rhsVal);
-//     }
-//
-//     return val === rhsVal;
-//   } catch {
-//     return false;
-//   }
-// }
-
-// function isTrivialAssignment(expr) {
-//   const rhs = getRHS(expr);
-//   if (!rhs) return false;
-//
-//   const assignMatch = expr.match(/^([a-zA-Z][a-zA-Z0-9]*)\s*=/);
-//   if (!assignMatch) return false;
-//
-//   const varName = assignMatch[1];
-//
-//   try {
-//     const rhsVal = math.evaluate(rhs, scope);
-//     const fullVal = math.evaluate(expr, scope);
-//
-//     if (rhsVal && rhsVal.isUnit && fullVal && fullVal.isUnit) {
-//       return math.equal(rhsVal, fullVal);
-//     }
-//
-//     return rhsVal === fullVal;
-//   } catch {
-//     return false;
-//   }
-//   // const match = expr.match(/^([a-zA-Z][a-zA-Z0-9]*)\s*=\s*(.+)$/);
-//   // if (!match) return false;
-//   //
-//   // const rhs = match[2];
-//   // return !hasRealComputation(rhs);
-// }
-
-function getAssignment(expr) {
-  const match = expr.match(/^([a-zA-Z][a-zA-Z0-9]*)\s*=/);
-  return match ? match[1] : null;
-}
-
-function isRedefined(varName, index, task) {
-  return task.formulas.slice(0, index).some(prev => {
-    const prevExpr = latexToMathjs(prev.latex);
-    return getAssignment(prevExpr) === varName;
-  });
-}
-
-function cloneIfPossible(val) {
-  if (val && val.isUnit) {
-    return val.clone().to("deg")
-  }
-  return val
-  return val && val.clone ? val.clone().to("deg") : val;
-}
-
-function normalizeTrig(val, expr) {
-  if (typeof val === "number" && /\b(asin|acos|atan)\b/.test(expr)) {
-    return val;
-    // const deg = math.unit(val, "rad").toNumber("deg");
-    // return math.unit(deg, "deg");
-  }
-  return val;
-}
-
-function applyUnitOverride(val, unitOverride) {
-  if (!unitOverride || !unitOverride.trim()) return val;
-
-  // if (unitOverride === "%") {
-  //   if (typeof val === "number") {
-  //     return val * 100;
-  //   }
-  //   if (val && val.isUnit) {
-  //     try {
-  //       const num = val.toNumber();
-  //       return num * 100;
-  //     } catch {
-  //       return val;
-  //     }
-  //   }
-  // }
-
-  try {
-    return val && val.clone ? val.clone().to(unitOverride) : val;
-  } catch {
-    return val;
-  }
-}
-
-function shouldHideResult(expr, val) {
-  const formatted = math.format(val, { precision: 4 });
-  return expr.replace(/\s+/g, '') === formatted.replace(/\s+/g, '');
-}
-
-function formatLatex(lat) {
-  let str = lat;
-
-  str = str
-    .replace(/\,/g, ",\\!")
-}
-
-function formatResult(val) {
-  // if (typeof val === "number" && isAngleExpression) {
-  //   const deg = val * 180 / Math.PI
-  //   return deg + "\\degree"
-  // }
-  let str = math.format(val, {
-    precision: 4,
-    notation: "auto"
-  });
-
-  str = str
-    .replace(/,/g, ";")
-    .replace(/\./g, ",\\!")
-    .replace(/(\d)\s+(?!deg\b)([a-zA-Z]+)/g, "$1\\, $2")
-    .replace(/ohm/g, "\\Omega");
-
-  return mathJsResultToLatex(str);
-}
-
-function snapshotScope(scope) {
-  return Object.keys(scope)
-    .map(k => k + ":" + math.format(scope[k]))
-    .join("|");
-}
+const MQ = MathQuill.getInterface(2);
+let renderer = null;
 
 new QWebChannel(qt.webChannelTransport, function(channel) {
-  bridge = channel.objects.bridge;
-  window.bridge = channel.objects.bridge;
+  const bridge = channel.objects.bridge;
+  window.bridge = bridge;
 
-  bridge.focusFormula.connect(function(id) {
-    idToFocus = id;
+  renderer = new TaskRenderer(document.getElementById('formulas'), bridge);
+
+  // C++ → JS: task structure changed (add/remove/reorder formulas, toggle flags)
+  bridge.taskChanged.connect((json) => {
+    renderer.render(JSON.parse(json));
   });
 
-  bridge.taskChanged.connect(function(json) {
-    renderTask(JSON.parse(json));
-  });
+  // C++ → JS: focus a specific formula after it was created
+  bridge.focusFormula.connect((id) => renderer.focus(id));
 
-  bridge.resultsReady.connect(function(json) {
-    // console.log(json);
-    renderResults(JSON.parse(json).formulas);
-  })
-
-  // AI MADE THIS!!!
-  const MAX_PASSES = 10;
-  bridge.evaluateTask.connect(function(json) {
-    const task = JSON.parse(json);
-
-    const results = task.formulas.map(f => ({
-      id: f.id,
-      result: null,
-      error: null,
-      show: false
-    }));
-
-    let scope = {};
-    let prevSnapshot = null;
-
-    for (let pass = 0; pass < MAX_PASSES; pass++) {
-      const snapshot = snapshotScope(scope);
-      if (snapshot === prevSnapshot) break;
-      prevSnapshot = snapshot;
-
-      task.formulas.forEach((f, i) => {
-        evaluateFormula(f, i, task, scope, results);
-      });
-    }
-
-    bridge.receiveResults(JSON.stringify(results));
-  });
-  // bridge.evaluateTask.connect(function(json) {
-  //   console.log("EVALUATING!!!");
-  //   var task = JSON.parse(json);
-  //   var MAX_PASSES = 10;
-  //   var results = task.formulas.map(function(f) {
-  //     return { id: f.id, result: null, error: null };
-  //   });
-  //
-  //   var scope = {};
-  //   var prevScope = null;
-  //
-  //   for (var pass = 0; pass < MAX_PASSES; pass++) {
-  //     var scopeSnapshot = JSON.stringify(scope);
-  //     if (scopeSnapshot === prevScope) break; // stabilised, no need to continue
-  //     prevScope = scopeSnapshot;
-  //
-  //     task.formulas.forEach(function(f, i) {
-  //       try {
-  //         if (f.isIntermediate) return;
-  //         results[i].show = true;
-  //         var expr = latexToMathjs(f.latex);
-  //         // console.log(expr);
-  //         if (expr.trim() === '') return;
-  //
-  //         // check for redefinition
-  //         var assignMatch = expr.match(/^([a-zA-Z][a-zA-Z0-9]*)\s*=/);
-  //         if (assignMatch) {
-  //           var varName = assignMatch[1];
-  //           var alreadyDefinedBy = task.formulas.slice(0, i).find(function(prev) {
-  //             var prevExpr = latexToMathjs(prev.latex);
-  //             var prevMatch = prevExpr.match(/^([a-zA-Z][a-zA-Z0-9]*)\s*=/);
-  //             return prevMatch && prevMatch[1] === varName;
-  //           });
-  //           if (alreadyDefinedBy) {
-  //             results[i].error = varName + ' already defined';
-  //             return;
-  //           }
-  //         }
-  //
-  //         var val = math.evaluate(expr, scope);
-  //         assignMatch = expr.match(/^([a-zA-Z][a-zA-Z0-9]*)\s*=/);
-  //
-  //         if (assignMatch) {
-  //           scope[assignMatch[1]] = val && val.clone ? val.clone() : val;
-  //         }
-  //
-  //         if (typeof val === "number" && /\b(asin|acos|atan)\b/.test(expr)) {
-  //           val = math.unit(val, "rad").toNumber("deg");
-  //           val = math.unit(val, "deg");
-  //
-  //           if (assignMatch) {
-  //             scope[assignMatch[1]] = val;
-  //           }
-  //         }
-  //
-  //         if (val && val.isUnit) {
-  //           const formatted = math.format(val, {
-  //             precision: 4,
-  //             notation: "auto"
-  //           });
-  //
-  //           const normalizedInput = expr.replace(/\s+/g, '');
-  //           const normalizedOutput = formatted.replace(/\s+/g, '');
-  //
-  //           if (normalizedInput.endsWith(normalizedOutput)) {
-  //             results[i].result = "";
-  //             return;
-  //           }
-  //
-  //           let displayVal = val;
-  //
-  //           if (f.unitOverride && f.unitOverride.trim() !== "") {
-  //             try {
-  //               displayVal = val.clone().to(f.unitOverride);
-  //             } catch (e) {
-  //
-  //             }
-  //           }
-  //
-  //           // if (val && val.isUnit) {
-  //           //   try {
-  //           //     // const original = math.evaluate(expr);
-  //           //     if (math.equal(displayVal, original)) {
-  //           //       results[i].result = "";
-  //           //       // results[i].error = "__DO_NOT_SHOW__";
-  //           //       return;
-  //           //     }
-  //           //   } catch {
-  //           //
-  //           //   }
-  //           // }
-  //
-  //           console.log(math.format(val, { precision: 4 }));
-  //           results[i].result = mathJsResultToLatex(
-  //             math.format(displayVal, {
-  //               precision: 4,
-  //               notation: "exponential",
-  //             }).replace(/,/g, ";").replace(/\./g, ",\\!").replace(/(\d)\s+(?!deg\b)([a-zA-Z]+)/g, "$1\\, $2")
-  //           );
-  //         } else {
-  //
-  //           let displayVal = val;
-  //
-  //           if (f.unitOverride && f.unitOverride.trim() !== "") {
-  //             try {
-  //               displayVal = val.clone().to(f.unitOverride);
-  //             } catch (e) {
-  //
-  //             }
-  //           }
-  //           const formatted = math.format(val, {
-  //             precision: 4,
-  //             notation: "exponential"
-  //           });
-  //
-  //           const normalizedInput = expr.replace(/\s+/g, '');
-  //           const normalizedOutput = formatted.replace(/\s+/g, '');
-  //
-  //           if (normalizedInput.endsWith(normalizedOutput)) {
-  //             results[i].result = "";
-  //             return;
-  //           }
-  //           // val = math.round(val, 10);
-  //           results[i].result = mathJsResultToLatex(
-  //             math.format(displayVal, { precision: 4, notation: "exponential" })
-  //           ).replace(/,/g, ";")
-  //             .replace(/\./g, ",\\!")
-  //             .replace(/(\d)\s+(?!deg\b)([a-zA-Z]+)/g, "$1\\, $2");
-  //           // results[i].result = math.format(val, { precision: 4 })
-  //         }
-  //
-  //         // results[i].result = math.format(val, { precision: 10 });
-  //         // results[i].error = null;
-  //       } catch(e) {
-  //         // console.error(e.message);
-  //         results[i].error = e.message;
-  //         results[i].result = null;
-  //       }
-  //     });
-  //   }
-  //
-  //   bridge.receiveResults(JSON.stringify(results));
-  // });
-
-  // bridge.evaluateTask.connect(function(json) {
-  //   var task = JSON.parse(json);
-  //   var scope = {};
-  //   var results = task.formulas.map(function(f) {
-  //     var result = null;
-  //     try {
-  //       var expr = latexToMathjs(f.latex);
-  //       if (expr.trim() !== '') {
-  //         var val = math.evaluate(expr, scope);
-  //         result = math.format(val, { precision: 6 });
-  //       }
-  //     } catch (e) {
-  //       console.error(f.latex + ": " + e);
-  //     }
-  //     return { id: f.id, result: result };
-  //   })
-  //
-  //   bridge.receiveResults(JSON.stringify(results));
-  // })
-
-  document.getElementById("add-btn").addEventListener("click", function() {
-    bridge.addFormula();
-  });
-})
-
-function renderTask(task) {
-  var container = document.getElementById('formulas');
-  container.innerHTML = '';
-  if (!task) return;
-  console.log(task);
-  fields = [];
-
-  console.log(task.formulas);
-
-  var index = 0;
-  task.formulas.forEach(function(f) {
-    console.log(f);
-    var row = document.createElement("div");
-    row.className = "formula-row";
-
-    row._showExplanation = false;
-
-    const formulaContainer = document.createElement("div");
-    formulaContainer.className = "formula-container";
-    row.appendChild(formulaContainer);
-
-    const upperContainer = document.createElement("div");
-    upperContainer.className = "upper-container";
-    const lowerContainer = document.createElement("div");
-    lowerContainer.className = "lower-container";
-
-    formulaContainer.appendChild(upperContainer);
-    formulaContainer.appendChild(lowerContainer);
-
-    var mqSpan = document.createElement("span");
-    mqSpan.className = "input-field";
-    upperContainer.appendChild(mqSpan);
-
-    // remove btn
-    var removeBtn = document.createElement("button");
-    removeBtn.className = "remove-btn"
-    removeBtn.textContent = "X";
-    removeBtn.addEventListener("click", function() {
-      bridge.removeFormula(f.id);
-    });
-    upperContainer.appendChild(removeBtn);
-
-    // Result/error
-    var resultDiv = document.createElement("span");
-    resultDiv.id = "result-" + f.id;
-    resultDiv.className = "result hidden";
-    if (f.result != null && f.result != "") {
-      resultDiv.className = "result";
-    }
-    lowerContainer.appendChild(resultDiv);
-
-    let unitOverrideDiv = document.createElement("input");
-    unitOverrideDiv.value = f.unitOverride;
-    unitOverrideDiv.className = "unit-override hidden";
-    unitOverrideDiv.addEventListener("input", () => {
-      bridge.updateUnitoverride(f.id, unitOverrideDiv.value);
-    })
-    if (f.result != null && f.result != "") {
-      unitOverrideDiv.className = "unit-override";
-    }
-    lowerContainer.appendChild(unitOverrideDiv);
-
-    let buttonsContainer = document.createElement("div");
-    buttonsContainer.className = "buttons-container";
-    row.appendChild(buttonsContainer);
-
-    let explanation = document.createElement("input");
-    explanation.value = f.explanation;
-    explanation.placeholder = "Type explanation here...";
-
-    const explanationToggleButton = document.createElement("button");
-    explanationToggleButton.innerText = "Explanation";
-    explanationToggleButton.title = "Add explanation";
-    explanationToggleButton.className = "btn";
-    explanationToggleButton.addEventListener("click", () => {
-      console.log(row._showExplanation);
-      row._showExplanation = !row._showExplanation;
-      if (row._showExplanation) {
-        explanationToggleButton.className = "btn active";
-        explanation.className = "explanation shown";
-      } else {
-        explanationToggleButton.className = "btn";
-        explanation.className = "explanation";
-      }
-    })
-    buttonsContainer.appendChild(explanationToggleButton);
-
-    // Answer toggle button
-    let answerToggleButton = document.createElement("button");
-    answerToggleButton.innerText = "Is Answer";
-    answerToggleButton.className = "btn";
-    answerToggleButton._isAnswer = f.isAnswer;
-    if (f.isAnswer) {
-      answerToggleButton.className = "btn active";
-    }
-    answerToggleButton.addEventListener("click", () => {
-      console.log("OMG!");
-      answerToggleButton._isAnswer = !answerToggleButton._isAnswer;
-      if (answerToggleButton._isAnswer) {
-        answerToggleButton.className = "btn active";
-      } else {
-        answerToggleButton.className = "btn";
-      }
-      bridge.toggleAnswer(f.id);
-    })
-    buttonsContainer.appendChild(answerToggleButton);
-
-    // Hiden answer toggle button
-    let hideAnswerBtn = document.createElement("button");
-    hideAnswerBtn.innerText = "Hide Answer";
-    hideAnswerBtn.className = "btn";
-    hideAnswerBtn._hideAnswer = f.hideAnswer;
-    if (f.isAnswer) {
-      hideAnswerBtn.className = "btn active";
-    }
-    hideAnswerBtn.addEventListener("click", () => {
-      // console.log("OMG!");
-      hideAnswerBtn._hideAnswer = !hideAnswerBtn._hideAnswer;
-      if (hideAnswerBtn._hideAnswer) {
-        hideAnswerBtn.className = "btn active";
-      } else {
-        hideAnswerBtn.className = "btn";
-      }
-      bridge.toggleHideAnswer(f.id);
-    })
-    buttonsContainer.appendChild(hideAnswerBtn);
-
-    let intermediateToggleBtn = document.createElement("button");
-    intermediateToggleBtn.innerText = "Is Intermediate";
-    intermediateToggleBtn.className = "btn";
-    intermediateToggleBtn._isIntermediate = f.isIntermediate;
-    if (f.isIntermediate) {
-      intermediateToggleBtn.className = "btn active";
-    }
-    intermediateToggleBtn.addEventListener("click", () => {
-      console.log("OMG!");
-      intermediateToggleBtn._isIntermediate = !intermediateToggleBtn._isIntermediate;
-      if (intermediateToggleBtn._isIntermediate) {
-        intermediateToggleBtn.className = "btn active";
-      } else {
-        intermediateToggleBtn.className = "btn";
-      }
-      bridge.toggleIntermediate(f.id);
-    })
-
-    buttonsContainer.appendChild(intermediateToggleBtn);
-
-    explanation.className = "explanation";
-    explanation.innerText = f.explanation;
-    explanation.contentEditable = "true";
-
-    explanation.addEventListener("input", () => {
-      console.log(explanation.value);
-      bridge.updateExplanation(f.id, explanation.value);
-    })
-    row.appendChild(explanation);
-
-    container.appendChild(row);
-
-    var mf = MQ.MathField(mqSpan, {
-      autoCommands: 'pi theta sqrt sum angle degree Updownarrow underline vec delta Delta omega Omega pm',
-      charsThatBreakOutOfSupSub: '+-=<>',
-      autoSubscriptNumerals: true,
-      restrictMismatchedBrackets: false,
-      autoOperatorNames: 'sin cos tan asin acos atan arcsin arccos arctan cross',
-      handlers: {
-        edit: function() {
-          bridge.updateFormula(f.id, mf.latex());
-        },
-
-        enter: function() {
-          bridge.addFormulaAfter(f.id);
-          var ids = Object.keys(fields).map(Number);
-          var nextId = ids[ids.indexOf(f.id) + 1];
-          if (nextId !== undefined) {
-            fields[nextId].focus();
-          }
-        },
-
-        downOutOf: function() {
-          var ids = Object.keys(fields).map(Number);
-          var nextId = ids[ids.indexOf(f.id) + 1];
-          if (nextId != undefined) {
-            fields[nextId].focus();
-          } else {
-            bridge.addFormulaAfter(f.id);
-            idToFocus = nextId;
-          }
-        },
-        upOutOf: function() {
-          console.log(fields);
-          var nextId = fields.find(obj => obj.id === f.id);
-          console.log(nextId);
-          if (nextId != undefined) {
-            nextId.focus();
-          }
-        },
-      }
-    });
-
-    var textArea = mqSpan.querySelector("textarea");
-    textArea.addEventListener("keydown", function(e) {
-      if (e.key === "(" && e.ctrlKey) {
-        e.preventDefault();
-        mf.write("(");
-      }
-      if (e.key === ")" && e.ctrlKey) {
-        e.preventDefault();
-        mf.write(")");
-      }
-      if (e.key === "[" && e.ctrlKey) {
-        e.preventDefault();
-        mf.write("[");
-      }
-      if (e.key === "]" && e.ctrlKey) {
-        e.preventDefault();
-        mf.write("]");
-      }
-
-      if (e.key === "Backspace" && mf.latex() === '') {
-        e.preventDefault();
-
-        var ids = Object.keys(fields).map(Number);
-        var prevId = ids[ids.indexOf(f.id) - 1];
-        if (prevId !== undefined) {
-          fields[prevId].focus();
-        }
-
-        bridge.removeFormula(f.id);
-      }
-    })
-
-    mf.latex(f.latex);
-    fields[f.id] = mf;
-    console.log(mf);
-
-    if (idToFocus == f.id) {
-      mf.focus();
-      idToFocus = null;
-    }
-    if (fields[idToFocus])
-      fields[idToFocus].focus();
-    index++;
-  })
-}
-
-function renderResults(results) {
-  results.forEach(function(r) {
-    let span = document.getElementById("result-" + r.id);
-    if (!span) return;
-    if (r.error) {
-      span.className = "result error";
-      // span.textContent = r.error;
-    } else if (r.result != "") {
-      span.className = "result";
-      window.katex.render("=" + r.result, span, { throwOnError: false });
-      // span.textContent = "= " + r.result;
-    } else {
-      span.className = "result hidden";
-      // span.textContent = "";
-    }
-  })
-}
-
+  // Add button in toolbar
+  document.getElementById('add-btn')?.addEventListener('click', () => bridge.addFormula());
+});

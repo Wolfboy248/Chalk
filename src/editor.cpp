@@ -116,6 +116,7 @@ void Editor::onChanged(ChangeType type) {
 
     case ChangeType::Content:
       mPagesBridge->update(); // Soft re-render
+      mMathDock->refresh();
       break;
 
     case ChangeType::Metadata:
@@ -126,6 +127,7 @@ void Editor::onChanged(ChangeType type) {
 
     // No rendering will be done.
     case ChangeType::Selection:
+      mMathDock->refresh();
       break;
   }
 }

@@ -28,6 +28,10 @@ public:
     emit taskChanged(taskToJson(task));
   }
 
+  void taskHasChanged() {
+    taskChanged(taskToJson(mTask));
+  }
+
 public slots:
   void updateFormula(int id, const QString& latex) {
     if (!mTask) return;
@@ -39,7 +43,7 @@ public slots:
 
     // auto cmd = std::make_unique<UpdateTaskCommand>();
     // int addedId = e->cmdMgr()->execute(std::move(cmd), *assignment);
-    emit evaluateTask(taskToJson(mTask));
+    // emit evaluateTask(taskToJson(mTask));
   }
 
   void updateExplanation(int id, const QString& explanation) {
@@ -55,7 +59,7 @@ public slots:
     for (auto& f : mTask->formulas) {
       if (f->id == id) { f->unitOverride = unitOverride; break; }
     }
-    emit evaluateTask(taskToJson(mTask));
+    // emit evaluateTask(taskToJson(mTask));
   }
 
   void toggleAnswer(int id) {
@@ -85,38 +89,10 @@ public slots:
     emit taskChanged(taskToJson(mTask));
   }
 
-  void addFormula() {
-    if (!mTask) return;
-    // auto f = assignment->addFormula(mTask);
-    // emit focusFormula(f->id);
-    emit taskChanged(taskToJson(mTask));
-  }
+  void addFormulaAfter(int id);
+  void addFormula();
 
-  void addFormulaAfter(int id) {
-    if (!mTask) return;
-    // auto f = assignment->addFormula(mTask, id);
-    // emit focusFormula(f->id);
-    emit taskChanged(taskToJson(mTask));
-  }
-
-  void removeFormula(int id) {
-    if (!mTask) return;
-
-    auto& v = mTask->formulas;
-    auto it = std::find_if(v.begin(), v.end(), [id](const auto& f){ return f->id == id; });
-
-    if (it != v.end()) {
-      if (it != v.begin()) {
-        int prevId = std::prev(it)->get()->id;
-        emit focusFormula(prevId);
-      } else if (std::next(it) != v.end()) {
-        int nextId = std::next(it)->get()->id;
-        emit focusFormula(nextId);
-      }
-    }
-    // assignment->removeFormula(mTask, id);
-    emit taskChanged(taskToJson(mTask));
-  }
+  void removeFormula(int id);
 
   void receiveLatex(const QString& latex);
 
@@ -145,7 +121,7 @@ signals:
   void taskChanged(const QString& json);
   void focusFormula(int id);
 
-  void evaluateTask(const QString& json);
+  // void evaluateTask(const QString& json);
   void resultsReady(const QString& json);
 
   void updatedExplanation();

@@ -13,7 +13,7 @@ public:
   MathInputDock(QWidget* parent = nullptr, Editor* editor = nullptr);
   void setTask(Task* task);
 
-  // void setAssignment(Assignment* a);
+  void refresh();
 
 signals:
   void changed();
@@ -21,7 +21,6 @@ signals:
 private:
   void onFormulaChange();
 
-  // Assignment* assignment = nullptr;
   Bridge* bridge = nullptr;
   Task* lastTask = nullptr;
 

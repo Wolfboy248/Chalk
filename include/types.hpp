@@ -10,6 +10,8 @@
 #include <cmd/removeTaskCommand.hpp>
 #include <cmd/updateTaskTitleCommand.hpp>
 #include <cmd/updateAssignmentTitleCommand.hpp>
+#include <cmd/addFormulaCommand.hpp>
+#include <cmd/removeFormulaCommand.hpp>
 
 struct Image {
   int id;

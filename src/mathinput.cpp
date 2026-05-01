@@ -42,10 +42,10 @@ MathInputDock::MathInputDock(QWidget* parent, Editor* editor) : QDockWidget("Mat
     qDebug() << "taskChanged, didnt emit changed";
     // emit changed();
   });
-  connect(bridge, &Bridge::evaluateTask, this, [&]() {
-    qDebug() << "evaluateTask, didnt emit changed";
-    // emit changed();
-  });
+  // connect(bridge, &Bridge::evaluateTask, this, [&]() {
+  //   qDebug() << "evaluateTask, didnt emit changed";
+  //   // emit changed();
+  // });
   connect(bridge, &Bridge::resultsReady, this, [&]() {
     qDebug() << "resultsReady, didnt emit changed";
     // emit changed();
@@ -54,20 +54,14 @@ MathInputDock::MathInputDock(QWidget* parent, Editor* editor) : QDockWidget("Mat
     qDebug() << "updatedExplanation";
     emit changed();
   });
-
-  // connect(bridge, &Bridge::updateFormula, this, [&]() {
-  //
-  // });
 }
 
-// void MathInputDock::setAssignment(Assignment* a) {
-//   bridge->setAssignment(a);
-//   assignment = a;
-// }
+void MathInputDock::refresh() {
+  bridge->taskHasChanged();
+}
 
 void MathInputDock::setTask(Task* task) {
   bridge->setTask(task);
   lastTask = task;
-  // qDebug() << "OMG SET TASK?! Task: " << task->title;
 }
 
