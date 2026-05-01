@@ -13,7 +13,6 @@ void RemoveTaskCommand::redo(Assignment& a) {
     v.end(),
     [this](const auto& t){ return t->id == taskId; }
   );
-
   if (it == v.end()) return;
 
   index = std::distance(v.begin(), it);

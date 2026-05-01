@@ -8,8 +8,7 @@ DocumentModel::DocumentModel(QObject* parent) : QObject(parent) {}
 
 // === Mutating the assignment ==
 int DocumentModel::execute(std::unique_ptr<Command> cmd) {
-  // TODO: Change to command's changetype
-  ChangeType type = ChangeType::Structure;
+  ChangeType type = cmd->changeType();
   int id = mCommandManager.execute(std::move(cmd), mAssignment);
   notifyChange(type);
   return id;
@@ -18,8 +17,7 @@ int DocumentModel::execute(std::unique_ptr<Command> cmd) {
 void DocumentModel::undo() {
   if (mCommandManager.undoStack.empty()) return;
 
-  // TODO: Change to command's changetype
-  ChangeType type = ChangeType::Structure;
+  ChangeType type = mCommandManager.undoStack.back()->changeType();
   mCommandManager.undo(mAssignment);
   notifyChange(type);
 }
@@ -27,8 +25,7 @@ void DocumentModel::undo() {
 void DocumentModel::redo() {
   if (mCommandManager.redoStack.empty()) return;
 
-  // TODO: Change to command's changetype
-  ChangeType type = ChangeType::Structure;
+  ChangeType type = mCommandManager.redoStack.back()->changeType();
   mCommandManager.redo(mAssignment);
   notifyChange(type);
 }
@@ -90,7 +87,11 @@ void DocumentModel::updateNames(const std::vector<QString>& names) {
   notifyChange(ChangeType::Metadata);
 }
 
-// === Saving/loading stuff === //
+void DocumentModel::selectedTaskChanged() {
+  notifyChange(ChangeType::Selection);
+}
+
+// === Saving/loading stuff ===
 void DocumentModel::setCurrentFile(const QString& path) {
   mCurrentFile = path;
   emit fileChanged(path);
@@ -115,8 +116,8 @@ bool DocumentModel::load(const QString& path) {
   mAssignment = AssignmentRepository::load(path);
 
   setCurrentFile(path);
-  markClean();
   notifyChange(ChangeType::Structure);
+  markClean();
   return true;
 }
 
@@ -124,11 +125,14 @@ void DocumentModel::reset() {
   mAssignment = Assignment{};
   setCurrentFile("");
   markDirty();
+  mCommandManager.undoStack.clear();
+  mCommandManager.redoStack.clear();
   notifyChange(ChangeType::Structure);
 }
 
-// === PRIVATE === //
+// === PRIVATE ===
 void DocumentModel::notifyChange(ChangeType type) {
+  if (type != ChangeType::Selection) markDirty();
   emit changed(type);
 }
 

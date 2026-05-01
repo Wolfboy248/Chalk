@@ -14,6 +14,8 @@ class NavigatorWidget : public QDockWidget {
 public:
   NavigatorWidget(Editor* e, QWidget* parent = nullptr);
 
+  QSize sizeHint() const override { return QSize{400, 600}; }
+
   // void setAssignment(Assignment* a);
   void refresh(int selectedId = -1);
 

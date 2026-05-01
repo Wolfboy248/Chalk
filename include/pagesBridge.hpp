@@ -8,16 +8,16 @@
 #include <QJsonObject>
 #include <QJsonDocument>
 
+class Editor;
+
 class PagesBridge : public QObject {
   Q_OBJECT
 public:
-  explicit PagesBridge(QObject* parent = nullptr) : QObject(parent) {
-    
-  }
+  explicit PagesBridge(QObject* parent = nullptr, Editor* editor = nullptr);
 
-  void setAssignment(Assignment* a) {
-    assignment = a;
-  }
+  // void setAssignment(Assignment* a) {
+  //   assignment = a;
+  // }
 
 public slots:
   void setBg(const QString& str) {
@@ -30,48 +30,17 @@ public slots:
     emit scrollToTask(doc.toJson(QJsonDocument::Compact));
   }
 
-  void jsReady() {
-    setBg(
-      QApplication::palette().color(QPalette::Window).name()
-    );
-    emit updatePages(assignmentToJson(assignment));
-  }
+  void jsReady();
 
-  void update() {
-    emit updatePages(assignmentToJson(assignment));
-  }
+  void update();
 
-  void updateFull() {
-    emit updatePagesFull(assignmentToJson(assignment));
-  }
+  void updateFull();
 
-  void updateTitle(const QString& title) {
-    qDebug() << "Updating title";
-    if (!assignment) return;
-    assignment->title = title;
-  }
+  void updateTitle(const QString& title);
 
-  void updateTaskTitle(int id, const QString& title) {
-    if (!assignment) return;
-    for (auto& t : assignment->tasks) {
-      if (t->id == id) {
-        t->title = title;
-        break;
-      }
-    }
-    emit updatedTaskTitle();
-  }
+  void updateTaskTitle(int id, const QString& title);
 
-  void removeImage(int taskId, int imageId) {
-    if (!assignment) return;
-    for (auto& t : assignment->tasks) {
-      if (t->id == taskId) {
-        assignment->removeImage(t.get(), imageId);
-        break;
-      }
-    }
-    emit updatePages(assignmentToJson(assignment));
-  }
+  void removeImage(int taskId, int imageId);
 
 signals:
   void setBgCol(const QString& str);
@@ -83,20 +52,20 @@ signals:
   void updatedTaskTitle();
 
 private:
-  QString assignmentToJson(Assignment* a) {
-    if (!a) return "null";
+  QString assignmentToJson(const Assignment& a) {
+    // if (!a) return "null";
     QJsonArray tasks;
-    for (const auto& t : a->tasks) {
+    for (const auto& t : a.tasks) {
       tasks.append(taskToJson(t.get()));
     }
 
     QJsonArray names;
-    for (const auto& n : a->names) {
+    for (const auto& n : a.names) {
       names.append(QJsonValue(n));
     }
 
     return QJsonDocument(QJsonObject{
-      {"title", a->title},
+      {"title", a.title},
       {"tasks", tasks},
       {"names", names},
     }).toJson();
@@ -136,6 +105,7 @@ private:
     };
   }
 
-  Assignment* assignment = nullptr;
+  // Assignment* assignment = nullptr;
+  Editor* e;
 };
 

@@ -16,7 +16,7 @@
             "id": 1,
             "images": [
             ],
-            "title": "nice"
+            "title": "This is awesomeaaaa"
         },
         {
             "formulas": [
@@ -26,8 +26,8 @@
                     "id": 3,
                     "isAnswer": false,
                     "isIntermediate": false,
-                    "latex": "this\\ is\\ an\\ update",
-                    "result": "",
+                    "latex": "W=2",
+                    "result": "2",
                     "unitOverride": ""
                 }
             ],

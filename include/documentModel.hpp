@@ -11,6 +11,7 @@ public:
 
   const Assignment& data() const { return mAssignment; }
   Assignment& data() { return mAssignment; }
+  const CommandManager& cmdMgr() const { return mCommandManager; }
   bool isUnsaved() const { return mUnsaved; }
   const QString& currentFile() const { return mCurrentFile; }
 
@@ -32,6 +33,8 @@ public:
   void updateTaskTitle(Task* t, const QString& title);
   void updateAssignmentTitle(const QString& title);
   void updateNames(const std::vector<QString>& names);
+
+  void selectedTaskChanged();
 
   // Saving/loading stuff
   void setCurrentFile(const QString& path);

@@ -146,18 +146,6 @@ void NavigatorWidget::setupToolbar() {
     }
     e->doc()->data().tasks = std::move(reordered);
 
-    // std::vector<Task> reordered;
-    // for (int i = 0; i < tree->topLevelItemCount(); i++) {
-    //   int originalIndex = tree->topLevelItem(i)->data(0, Qt::UserRole).toInt();
-    //   assignment->reorderTask(originalIndex, i);
-    //   // reordered.push_back(assignment->tasks[originalIndex]);
-    // }
-    // assignment->tasks = reordered;
-
-    // for (int i = 0; i < tree->topLevelItemCount(); i++) {
-    //   tree->topLevelItem(i)->setData(0, Qt::UserRole, i);
-    // }
-
     emit changed();
   });
 
@@ -166,7 +154,10 @@ void NavigatorWidget::setupToolbar() {
     // if (!assignment) return;
     int index = tree->indexOfTopLevelItem(item);
     if (index == -1) return;
-    e->doc()->data().tasks[index]->title = item->text(0);
+
+    // e->doc()->data().tasks[index]->title = item->text(0);
+    auto cmd = std::make_unique<UpdateTaskTitleCommand>(e->doc()->data().tasks[index]->id, item->text(0));
+    e->doc()->execute(std::move(cmd));
     emit changed();
   });
 }

@@ -43,7 +43,7 @@ void logAssignment(const Assignment& a) {
   qDebug() << "Tasks:";
   for (int i = 0; i < a.tasks.size(); i++) {
     const auto& task = a.tasks[i];
-    qDebug() << i << ". " << task->title;
+    qDebug() << task->id << ". " << task->title;
     
     for (int j = 0; j < task->formulas.size(); j++) {
       const auto& formula = task->formulas[j];
@@ -53,16 +53,8 @@ void logAssignment(const Assignment& a) {
 }
 
 void Editor::logChange(ChangeType type) {
-  QString changeStr;
-  switch (type) {
-    case ChangeType::Structure: changeStr = "Structure"; break;
-    case ChangeType::Content: changeStr = "Content"; break;
-    case ChangeType::Metadata: changeStr = "Metadata"; break;
-    case ChangeType::Selection: changeStr = "Selection"; break;
-    default: changeStr = "Unknown"; break;
-  }
+  QString changeStr = changeTypeToStr(type);
   qDebug() << "Detected change of type: " + changeStr;
-  logAssignment(mDoc->data());
 }
 
 Editor::Editor(QWidget* parent) : QMainWindow(parent) {
@@ -84,6 +76,8 @@ Editor::Editor(QWidget* parent) : QMainWindow(parent) {
   connect(mDoc, &DocumentModel::fileChanged, this, [this](const QString&) {
     updateWindowTitle();
   });
+
+  newAssignment();
 }
 
 void Editor::closeEvent(QCloseEvent* event) {
@@ -111,10 +105,12 @@ void Editor::closeEvent(QCloseEvent* event) {
 // Supa importante funktion. All changes should go through here.
 void Editor::onChanged(ChangeType type) {
   logChange(type);
+  logAssignment(mDoc->data());
+  mHistoryDock->refresh();
   switch (type) {
     // Full re-render
     case ChangeType::Structure:
-      mPagesBridge->updateFull();
+      mPagesBridge->update();
       mNavigator->refresh();
       break;
 
@@ -142,6 +138,7 @@ void Editor::onTaskSelected(Task* task) {
   mSelectedTask = task;
   mMathDock->setTask(task);
   mPagesBridge->scrollToTask(task);
+  mDoc->selectedTaskChanged();
 }
 
 // === Setup/window ===
@@ -214,7 +211,7 @@ void Editor::setupCentralWidget() {
 
   mPagesContainer = new QWebEngineView(this);
   QWebEngineView* container = mPagesContainer;
-  mPagesBridge = new PagesBridge(this);
+  mPagesBridge = new PagesBridge(this, this);
   PagesBridge* bridge = mPagesBridge;
   QWebChannel* channel = new QWebChannel();
   channel->registerObject("bridge", bridge);
@@ -254,23 +251,25 @@ void Editor::setupDocks() {
   );
 
   mNavigator = new NavigatorWidget(this, this);
-  // mNavigator->setAssignment(&assignment);
-  mNavigator->setMinimumWidth(400);
-  mNavigator->setMaximumWidth(800);
+  mHistoryDock = new HistoryDock(this, this);
+
   addDockWidget(Qt::RightDockWidgetArea, mNavigator);
-  resizeDocks({mNavigator}, {400}, Qt::Horizontal);
+  addDockWidget(Qt::RightDockWidgetArea, mHistoryDock);
+
+  tabifyDockWidget(mNavigator, mHistoryDock);
+  mNavigator->raise();
 
   mMathDock = new MathInputDock(this, this);
   // mMathDock->setAssignment(&assignment);
   addDockWidget(Qt::LeftDockWidgetArea, mMathDock);
-  resizeDocks({mMathDock}, {400}, Qt::Horizontal);
+  resizeDocks({mMathDock, mHistoryDock}, {500, 300}, Qt::Horizontal);
 
-  // connect(
-  //   navigator,
-  //   &NavigatorWidget::taskSelected,
-  //   this,
-  //   &Editor::onTaskSelected
-  // );
+  connect(
+    mNavigator,
+    &NavigatorWidget::taskSelected,
+    this,
+    &Editor::onTaskSelected
+  );
   //
   // connect(
   //   navigator,
@@ -304,11 +303,14 @@ void Editor::setupDocks() {
   // );
 }
 
-int timesUpdated = 0;
 void Editor::updateWindowTitle() {
-  setWindowTitle(
-    "Times updated: " + QString{std::to_string(timesUpdated).c_str()}
-  );
+  QString winTitle = WINDOW_TITLE_PREFIX + mDoc->data().title;
+
+  if (mDoc->isUnsaved()) {
+    winTitle += "*";
+  }
+
+  setWindowTitle(winTitle);
 }
 
 // === Save/load ===

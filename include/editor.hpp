@@ -13,6 +13,17 @@
 #include "page.hpp"
 #include "pagesBridge.hpp"
 #include "documentModel.hpp"
+#include "historyDock.hpp"
+
+static inline QString changeTypeToStr(ChangeType type) {
+  switch (type) {
+    case ChangeType::Structure: return "Structure"; break;
+    case ChangeType::Content: return "Content"; break;
+    case ChangeType::Metadata: return "Metadata"; break;
+    case ChangeType::Selection: return "Selection"; break;
+    default: return "Unknown"; break;
+  }
+}
 
 class Editor : public QMainWindow {
   Q_OBJECT
@@ -58,6 +69,7 @@ private:
   QWebEngineView* mPagesContainer;
   MathInputDock* mMathDock;
   NavigatorWidget* mNavigator;
+  HistoryDock* mHistoryDock;
 
   Task* mSelectedTask = nullptr;
 

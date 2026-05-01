@@ -8,6 +8,8 @@
 
 #include <cmd/addTaskCommand.hpp>
 #include <cmd/removeTaskCommand.hpp>
+#include <cmd/updateTaskTitleCommand.hpp>
+#include <cmd/updateAssignmentTitleCommand.hpp>
 
 struct Image {
   int id;

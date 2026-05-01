@@ -14,6 +14,14 @@ const probe = document.createElement("div");
 probe.id = "probe";
 document.body.appendChild(probe);
 
+const debounce = (fn, delay = 400) => {
+  let timer;
+  return (...args) => {
+    clearTimeout(timer);
+    timer = setTimeout(() => fn(...args), delay);
+  };
+};
+
 const splitEquation = (expr) => {
   const parts = expr.split("=");
   return {
@@ -60,6 +68,7 @@ function scrollToSmoothly(pos, time) {
 }
 
 const scrollToTask = (task) => {
+  console.log("Scrolling to task: " + task.title);
   const el = document.getElementById(`task:${task.id}`);
   if (!el) return;
 
@@ -231,15 +240,22 @@ const createElement = (block) => {
 const attachListeners = (block, el) => {
   switch (block.type) {
     case "title": {
-      el.addEventListener("input", () => bridge && bridge.updateTitle(el.innerText));
+      el.addEventListener("input", debounce(
+        () => bridge && bridge.updateTitle(el.innerText)
+      ));
       break;
     }
     case "task": {
-      el.addEventListener("input", () => bridge && bridge.updateTaskTitle(block.id, el.innerText));
+      el.addEventListener("input", debounce(
+        () => bridge && bridge.updateTaskTitle(block.id, el.innerText)
+      ));
       break;
     }
     case "image": {
-      el.addEventListener("click", () => bridge && bridge.removeImage(block.taskId, block.imageId));
+      el.addEventListener(
+        "click",
+        () => bridge && bridge.removeImage(block.taskId, block.imageId)
+      );
       break;
     }
   }

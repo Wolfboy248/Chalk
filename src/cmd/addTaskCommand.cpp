@@ -8,7 +8,11 @@ ChangeType AddTaskCommand::changeType() const {
 
 void AddTaskCommand::redo(Assignment& a) {
   auto* t = a.addTask(title);
-  createdId = t->id;
+  if (createdId == -1) {
+    createdId = t->id;
+  } else {
+    t->id = createdId;
+  }
 }
 
 void AddTaskCommand::undo(Assignment& a) {
