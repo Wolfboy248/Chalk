@@ -47,31 +47,47 @@ void logAssignment(const Assignment& a) {
     
     for (int j = 0; j < task->formulas.size(); j++) {
       const auto& formula = task->formulas[j];
-      qDebug() << " |- " << j << ". " << formula->latex;
+      qDebug() << "  |- " << j << ". " << formula->latex;
     }
   }
 }
 
+void Editor::logChange(ChangeType type) {
+  QString changeStr;
+  switch (type) {
+    case ChangeType::Structure: changeStr = "Structure"; break;
+    case ChangeType::Content: changeStr = "Content"; break;
+    case ChangeType::Metadata: changeStr = "Metadata"; break;
+    case ChangeType::Selection: changeStr = "Selection"; break;
+    default: changeStr = "Unknown"; break;
+  }
+  qDebug() << "Detected change of type: " + changeStr;
+  logAssignment(mDoc->data());
+}
+
 Editor::Editor(QWidget* parent) : QMainWindow(parent) {
+  mDoc = new DocumentModel(this);
+
   setupMenu();
   setupToolbar();
   setupCentralWidget();
-  setDockOptions(
-    QMainWindow::AllowTabbedDocks |
-    QMainWindow::AllowNestedDocks |
-    QMainWindow::AnimatedDocks
-  );
   setupDocks();
-  updateWindowTitle(true);
-  // setWindowTitle(WINDOW_TITLE_PREFIX + QString("unsaved*"));
 
-  commandManager = new CommandManager();
-
-  // exportToPdf();
+  // Model wired to the ui. NOWHERE ELSE SHOULD UPDATE LOGIC BE. ONLY HERE
+  connect(mDoc, &DocumentModel::changed, this, &Editor::onChanged);
+  connect(
+    mDoc,
+    &DocumentModel::saveStateChanged,
+    this,
+    &Editor::onSaveStateChanged
+  );
+  connect(mDoc, &DocumentModel::fileChanged, this, [this](const QString&) {
+    updateWindowTitle();
+  });
 }
 
 void Editor::closeEvent(QCloseEvent* event) {
-  if (mUnsaved) {
+  if (mDoc->isUnsaved()) {
     auto result = QMessageBox::warning(
       this,
       "Unsaved Changes",
@@ -92,184 +108,43 @@ void Editor::closeEvent(QCloseEvent* event) {
   }
 }
 
-void Editor::test() {
-  pagesBridge->update();
+// Supa importante funktion. All changes should go through here.
+void Editor::onChanged(ChangeType type) {
+  logChange(type);
+  switch (type) {
+    // Full re-render
+    case ChangeType::Structure:
+      mPagesBridge->updateFull();
+      mNavigator->refresh();
+      break;
+
+    case ChangeType::Content:
+      mPagesBridge->update(); // Soft re-render
+      break;
+
+    case ChangeType::Metadata:
+      mPagesBridge->updateFull(); // Names/title
+      updateWindowTitle();
+      // navigator doesnt use names or title
+      break;
+
+    // No rendering will be done.
+    case ChangeType::Selection:
+      break;
+  }
 }
 
-void Editor::updateWindowTitle(bool somethingChanged) {
-  if (somethingChanged) {
-    if (currentFile == "") {
-      setWindowTitle(WINDOW_TITLE_PREFIX + assignment.title + "*");
-    } else {
-      setWindowTitle(WINDOW_TITLE_PREFIX + currentFile + " - " + assignment.title + "*");
-    }
-  }
-  else {
-    setWindowTitle(WINDOW_TITLE_PREFIX + currentFile + " - " + assignment.title);
-  }
-}
-
-void Editor::save() {
-  if (currentFile == "") {
-    saveAs();
-    return;
-  }
-
-  AssignmentRepository::save(assignment, currentFile);
-  statusBar()->showMessage("Document saved", 2000);
+void Editor::onSaveStateChanged(bool unsaved) {
   updateWindowTitle();
 }
 
-void Editor::updateToDocument(bool softUpdate) {
-  qDebug() << "Change to document detected";
-
-  if (softUpdate) {
-    pagesBridge->update();
-  } else {
-    pagesBridge->updateFull();
-  }
-  navigator->refresh();
-  updateWindowTitle(true);
-  mUnsaved = true;
+void Editor::onTaskSelected(Task* task) {
+  mSelectedTask = task;
+  mMathDock->setTask(task);
+  mPagesBridge->scrollToTask(task);
 }
 
-void Editor::openNameDialog() {
-  QDialog* dialog = new QDialog(this);
-  dialog->setWindowTitle("Assignment names");
-  dialog->setWindowFlags(Qt::Dialog);
-  dialog->setWindowModality(Qt::ApplicationModal);
-
-  dialog->setMinimumSize(400, 300);
-
-  QVBoxLayout* layout = new QVBoxLayout(dialog);
-
-  QListWidget* list = new QListWidget(dialog);
-  list->setEditTriggers(
-    QAbstractItemView::DoubleClicked | QAbstractItemView::EditKeyPressed | QAbstractItemView::SelectedClicked
-  );
-  layout->addWidget(list);
-
-  auto* addBtn = new QPushButton("Add", dialog);
-  auto* removeBtn = new QPushButton("Remove", dialog);
-
-  auto* btnLayout = new QHBoxLayout();
-  btnLayout->addWidget(addBtn);
-  btnLayout->addWidget(removeBtn);
-
-  layout->addLayout(btnLayout);
-
-  for (const auto& s : assignment.names) {
-    list->addItem(s);
-  }
-
-  connect(addBtn, &QPushButton::clicked, dialog, [&]() {
-    auto* item = new QListWidgetItem("Anders Andersen");
-    item->setFlags(item->flags() | Qt::ItemIsEditable);
-    list->addItem(item);
-    list->setCurrentItem(item);
-    list->editItem(item);
-  });
-  connect(removeBtn, &QPushButton::clicked, dialog, [&]() {
-    delete list->takeItem(list->currentRow());
-  });
-
-  connect(dialog, &QDialog::finished, this, [&](int result) {
-    // if (result != QDialog::Accepted) return;
-    assignment.names.clear();
-    for (int i = 0; i < list->count(); i++) {
-      assignment.names.push_back(list->item(i)->text());
-    }
-
-    updateToDocument(false);
-    // pagesBridge->updateFull();
-  });
-
-  dialog->adjustSize();
-  dialog->move(this->geometry().center() - dialog->rect().center());
-
-  dialog->exec();
-}
-
-void Editor::saveAs() {
-  QString fileName = QFileDialog::getSaveFileName(
-    this,
-    "Save File",
-    "",
-    "BMF Files (*.bmf)"
-  );
-
-  if (fileName == "") return;
-
-  if (!fileName.endsWith(".bmf")) {
-    fileName += ".bmf";
-  }
-
-  AssignmentRepository::save(assignment, fileName);
-  statusBar()->showMessage("Document saved", 2000);
-  currentFile = fileName;
-  updateWindowTitle();
-}
-
-void Editor::undo() {
-  commandManager->undo(assignment);
-
-  updateToDocument();
-}
-
-void Editor::redo() {
-  commandManager->redo(assignment);
-
-  updateToDocument();
-  // navigator->refresh();
-  // pagesBridge->update();
-}
-
-void Editor::setAssignment(Assignment ass) {
-  assignment = std::move(ass);
-  pagesBridge->setAssignment(&assignment);
-  navigator->setAssignment(&assignment);
-  mathDock->setAssignment(&assignment);
-}
-
-void Editor::newAssignment() {
-  Assignment ass{};
-  setAssignment(std::move(ass));
-  updateToDocument(false);
-  // assignment = std::move(ass);
-
-  // setWindowTitle(WINDOW_TITLE_PREFIX + QString("unsaved*"));
-  // pagesBridge->setAssignment(&assignment);
-  // navigator->setAssignment(&assignment);
-  // mathDock->setAssignment(&assignment);
-  // pagesBridge->update();
-
-  currentFile = "";
-  updateWindowTitle(true);
-}
-
-void Editor::load() {
-  QString fileName = QFileDialog::getOpenFileName(
-    this,
-    "Open File",
-    "",
-    "BMF Files (*.bmf)"
-  );
-
-  if (fileName == "") return;
-
-  setAssignment(AssignmentRepository::load(fileName));
-  assignment = AssignmentRepository::load(fileName);
-  qDebug() << assignment.title;
-  currentFile = fileName;
-  updateToDocument();
-  updateWindowTitle();
-  mUnsaved = false;
-  // pagesBridge->update();
-
-  // updateWindowTitle();
-  // setWindowTitle(WINDOW_TITLE_PREFIX + currentFile + " - " + assignment.title);
-}
-
+// === Setup/window ===
 void Editor::setupMenu() {
   QMenu* fileMenu = menuBar()->addMenu("&File");
 
@@ -302,7 +177,7 @@ void Editor::setupMenu() {
   connect(exportAction, &QAction::triggered, this, &Editor::exportToPdf);
 
   fileMenu->addAction(exportAction);
-  fileMenu->addAction("Update document", this, &Editor::test);
+  // fileMenu->addAction("Update document", this, &Editor::test);
   fileMenu->addSeparator();
   fileMenu->addAction("Exit", qApp, &QApplication::quit);
 
@@ -310,12 +185,12 @@ void Editor::setupMenu() {
 
   QAction* undoAction = new QAction("Undo", this);
   undoAction->setShortcut(QKeySequence::Undo);
-  connect(undoAction, &QAction::triggered, this, &Editor::undo);
+  connect(undoAction, &QAction::triggered, mDoc, &DocumentModel::undo);
   editMenu->addAction(undoAction);
 
   QAction* redoAction = new QAction("Redo", this);
   redoAction->setShortcut(QKeySequence::Redo);
-  connect(redoAction, &QAction::triggered, this, &Editor::redo);
+  connect(redoAction, &QAction::triggered, mDoc, &DocumentModel::redo);
   editMenu->addAction(redoAction);
 
   editMenu->addSeparator();
@@ -337,15 +212,14 @@ void Editor::setupToolbar() {
 void Editor::setupCentralWidget() {
   QTabWidget* tabs = new QTabWidget(this);
 
-  pagesContainer = new QWebEngineView(this);
-  QWebEngineView* container = pagesContainer;
-  pagesBridge = new PagesBridge(this);
-  PagesBridge* bridge = pagesBridge;
+  mPagesContainer = new QWebEngineView(this);
+  QWebEngineView* container = mPagesContainer;
+  mPagesBridge = new PagesBridge(this);
+  PagesBridge* bridge = mPagesBridge;
   QWebChannel* channel = new QWebChannel();
   channel->registerObject("bridge", bridge);
   container->page()->setWebChannel(channel);
-  bridge->setAssignment(&assignment);
-  // setCentralWidget(container);
+  // bridge->setAssignment(&assignment);
 
 #ifdef NDEBUG
   container->setUrl(QUrl("qrc:/web/pages.html"));
@@ -373,66 +247,112 @@ void Editor::setupCentralWidget() {
 }
 
 void Editor::setupDocks() {
-  navigator = new NavigatorWidget(this, this);
-  navigator->setAssignment(&assignment);
-  navigator->setMinimumWidth(400);
-  navigator->setMaximumWidth(800);
-  connect(navigator, &NavigatorWidget::changed, [&]() {
-    // updateToDocument();
-    pagesBridge->update();
-  });
-  addDockWidget(Qt::RightDockWidgetArea, navigator);
-  resizeDocks({navigator}, {400}, Qt::Horizontal);
-
-  mathDock = new MathInputDock(this, this);
-  mathDock->setAssignment(&assignment);
-  addDockWidget(Qt::LeftDockWidgetArea, mathDock);
-  resizeDocks({mathDock}, {400}, Qt::Horizontal);
-
-  connect(
-    navigator,
-    &NavigatorWidget::taskSelected,
-    this,
-    &Editor::onTaskSelected
+  setDockOptions(
+    QMainWindow::AllowTabbedDocks |
+    QMainWindow::AllowNestedDocks |
+    QMainWindow::AnimatedDocks
   );
 
-  connect(
-    navigator,
-    &NavigatorWidget::changed,
-    [&]() {
-      if (assignment.tasks.size() == 0) {
-        mathDock->setTask(nullptr);
-      }
-    }
-  );
+  mNavigator = new NavigatorWidget(this, this);
+  // mNavigator->setAssignment(&assignment);
+  mNavigator->setMinimumWidth(400);
+  mNavigator->setMaximumWidth(800);
+  addDockWidget(Qt::RightDockWidgetArea, mNavigator);
+  resizeDocks({mNavigator}, {400}, Qt::Horizontal);
 
-  connect(
-    pagesBridge,
-    &PagesBridge::updatedTaskTitle,
-    this,
-    [&]() {
-      qDebug() << "Update to document from: pagesBridge updatedTaskTitle";
-      updateToDocument();
-      // navigator->refresh();
-    }
-  );
+  mMathDock = new MathInputDock(this, this);
+  // mMathDock->setAssignment(&assignment);
+  addDockWidget(Qt::LeftDockWidgetArea, mMathDock);
+  resizeDocks({mMathDock}, {400}, Qt::Horizontal);
 
-  connect(
-    mathDock,
-    &MathInputDock::changed,
-    [&]() {
-      qDebug() << "Update to document from: mathinput changed";
-      updateToDocument();
-      // pagesBridge->update();
-    }
+  // connect(
+  //   navigator,
+  //   &NavigatorWidget::taskSelected,
+  //   this,
+  //   &Editor::onTaskSelected
+  // );
+  //
+  // connect(
+  //   navigator,
+  //   &NavigatorWidget::changed,
+  //   [&]() {
+  //     if (assignment.tasks.size() == 0) {
+  //       mathDock->setTask(nullptr);
+  //     }
+  //   }
+  // );
+  //
+  // connect(
+  //   pagesBridge,
+  //   &PagesBridge::updatedTaskTitle,
+  //   this,
+  //   [&]() {
+  //     qDebug() << "Update to document from: pagesBridge updatedTaskTitle";
+  //     updateToDocument();
+  //     // navigator->refresh();
+  //   }
+  // );
+  //
+  // connect(
+  //   mathDock,
+  //   &MathInputDock::changed,
+  //   [&]() {
+  //     qDebug() << "Update to document from: mathinput changed";
+  //     updateToDocument();
+  //     // pagesBridge->update();
+  //   }
+  // );
+}
+
+int timesUpdated = 0;
+void Editor::updateWindowTitle() {
+  setWindowTitle(
+    "Times updated: " + QString{std::to_string(timesUpdated).c_str()}
   );
 }
 
-void Editor::onTaskSelected(Task* task) {
-  selectedTask = task;
-  mathDock->setTask(task);
-  pagesBridge->scrollToTask(task);
-  if (!task) return;
+// === Save/load ===
+void Editor::newAssignment() {
+  mDoc->reset();
+}
+
+void Editor::save() {
+  if (!mDoc->save()) {
+    saveAs();
+    return;
+  }
+}
+
+void Editor::saveAs() {
+  QString fileName = QFileDialog::getSaveFileName(
+    this,
+    "Save File",
+    "",
+    "BMF Files (*.bmf)"
+  );
+
+  if (fileName == "") return;
+
+  if (!fileName.endsWith(".bmf")) {
+    fileName += ".bmf";
+  }
+
+  if (mDoc->saveAs(fileName)) {
+    statusBar()->showMessage("Document saved", 2000);
+  }
+}
+
+void Editor::load() {
+  QString fileName = QFileDialog::getOpenFileName(
+    this,
+    "Open File",
+    "",
+    "BMF Files (*.bmf)"
+  );
+
+  if (fileName == "") return;
+
+  mDoc->load(fileName);
 }
 
 void Editor::exportToPdf() {
@@ -447,7 +367,7 @@ void Editor::exportToPdf() {
     if (fileName.isEmpty()) return;
     if (!fileName.endsWith(".pdf")) fileName += ".pdf";
 
-    pagesContainer->page()->printToPdf(fileName);
+    mPagesContainer->page()->printToPdf(fileName);
   });
   // pagesContainer->page()->runJavaScript(R"(
   //   document.body.offsetHeight || 0;
@@ -469,5 +389,60 @@ void Editor::exportToPdf() {
   //     pagesContainer->page()->printToPdf(fileName);
   //   });
   // });
+}
+
+void Editor::openNameDialog() {
+  QDialog* dialog = new QDialog(this);
+  dialog->setWindowTitle("Assignment names");
+  dialog->setWindowFlags(Qt::Dialog);
+  dialog->setWindowModality(Qt::ApplicationModal);
+
+  dialog->setMinimumSize(400, 300);
+
+  QVBoxLayout* layout = new QVBoxLayout(dialog);
+
+  QListWidget* list = new QListWidget(dialog);
+  list->setEditTriggers(
+    QAbstractItemView::DoubleClicked | QAbstractItemView::EditKeyPressed | QAbstractItemView::SelectedClicked
+  );
+  layout->addWidget(list);
+
+  auto* addBtn = new QPushButton("Add", dialog);
+  auto* removeBtn = new QPushButton("Remove", dialog);
+
+  auto* btnLayout = new QHBoxLayout();
+  btnLayout->addWidget(addBtn);
+  btnLayout->addWidget(removeBtn);
+
+  layout->addLayout(btnLayout);
+
+  for (const auto& s : mDoc->data().names) {
+    list->addItem(s);
+  }
+
+  connect(addBtn, &QPushButton::clicked, dialog, [&]() {
+    auto* item = new QListWidgetItem("Anders Andersen");
+    item->setFlags(item->flags() | Qt::ItemIsEditable);
+    list->addItem(item);
+    list->setCurrentItem(item);
+    list->editItem(item);
+  });
+  connect(removeBtn, &QPushButton::clicked, dialog, [&]() {
+    delete list->takeItem(list->currentRow());
+  });
+
+  connect(dialog, &QDialog::finished, this, [&](int result) {
+    // if (result != QDialog::Accepted) return;
+    std::vector<QString> newNames{};
+    for (int i = 0; i < list->count(); i++) {
+      newNames.push_back(list->item(i)->text());
+    }
+    mDoc->updateNames(newNames);
+  });
+
+  dialog->adjustSize();
+  dialog->move(this->geometry().center() - dialog->rect().center());
+
+  dialog->exec();
 }
 

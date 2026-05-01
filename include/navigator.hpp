@@ -14,7 +14,7 @@ class NavigatorWidget : public QDockWidget {
 public:
   NavigatorWidget(Editor* e, QWidget* parent = nullptr);
 
-  void setAssignment(Assignment* a);
+  // void setAssignment(Assignment* a);
   void refresh(int selectedId = -1);
 
 signals:
@@ -23,7 +23,7 @@ signals:
 private:
   void setupToolbar();
 
-  Assignment* assignment = nullptr;
+  // Assignment* assignment = nullptr;
 
   QToolBar* toolbar;
   TaskTreeWidget* tree;

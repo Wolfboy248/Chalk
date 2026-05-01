@@ -15,9 +15,9 @@ public:
 
   QString formula() const { return mFormula; }
 
-  void setAssignment(Assignment* a) {
-    assignment = a;
-  }
+  // void setAssignment(Assignment* a) {
+  //   assignment = a;
+  // }
 
   void setTask(Task* task) {
     mTask = task;
@@ -87,15 +87,15 @@ public slots:
 
   void addFormula() {
     if (!mTask) return;
-    auto f = assignment->addFormula(mTask);
-    emit focusFormula(f->id);
+    // auto f = assignment->addFormula(mTask);
+    // emit focusFormula(f->id);
     emit taskChanged(taskToJson(mTask));
   }
 
   void addFormulaAfter(int id) {
     if (!mTask) return;
-    auto f = assignment->addFormula(mTask, id);
-    emit focusFormula(f->id);
+    // auto f = assignment->addFormula(mTask, id);
+    // emit focusFormula(f->id);
     emit taskChanged(taskToJson(mTask));
   }
 
@@ -114,7 +114,7 @@ public slots:
         emit focusFormula(nextId);
       }
     }
-    assignment->removeFormula(mTask, id);
+    // assignment->removeFormula(mTask, id);
     emit taskChanged(taskToJson(mTask));
   }
 
@@ -184,7 +184,7 @@ private:
     }).toJson();
   }
 
-  Assignment* assignment;
+  // Assignment* assignment;
   QString mFormula;
   Task* mTask = nullptr;
   int nextId = 0;

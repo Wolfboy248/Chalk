@@ -60,10 +60,10 @@ MathInputDock::MathInputDock(QWidget* parent, Editor* editor) : QDockWidget("Mat
   // });
 }
 
-void MathInputDock::setAssignment(Assignment* a) {
-  bridge->setAssignment(a);
-  assignment = a;
-}
+// void MathInputDock::setAssignment(Assignment* a) {
+//   bridge->setAssignment(a);
+//   assignment = a;
+// }
 
 void MathInputDock::setTask(Task* task) {
   bridge->setTask(task);

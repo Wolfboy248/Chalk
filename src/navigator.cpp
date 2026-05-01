@@ -31,13 +31,13 @@ NavigatorWidget::NavigatorWidget(Editor* editor, QWidget* parent) : QDockWidget(
   setWidget(container);
 }
 
-void NavigatorWidget::setAssignment(Assignment* a) {
-  assignment = a;
-  refresh();
-}
+// void NavigatorWidget::setAssignment(Assignment* a) {
+//   assignment = a;
+//   refresh();
+// }
 
 void NavigatorWidget::refresh(int selectedId) {
-  if (!assignment) return;
+  // if (!assignment) return;
   refreshing = true;
   tree->clear();
 
@@ -45,8 +45,8 @@ void NavigatorWidget::refresh(int selectedId) {
   // assignmentParent->setText(0, assignment->title);
   // assignmentParent->setFlags(Qt::ItemIsEnabled | Qt::ItemIsEditable);
 
-  for (int i = 0; i < assignment->tasks.size(); i++) {
-    const auto& task = assignment->tasks[i];
+  for (int i = 0; i < e->doc()->data().tasks.size(); i++) {
+    const auto& task = e->doc()->data().tasks[i];
     QTreeWidgetItem* item = new QTreeWidgetItem(tree);
     item->setData(0, Qt::UserRole, task->id);
     item->setText(0, task->title);
@@ -55,7 +55,7 @@ void NavigatorWidget::refresh(int selectedId) {
     if (selectedId != -1 && selectedId == task->id) {
       item->setSelected(true);
       tree->setCurrentItem(item);
-      emit taskSelected(assignment->tasks[i].get());
+      emit taskSelected(e->doc()->data().tasks[i].get());
     }
   }
 
@@ -64,18 +64,18 @@ void NavigatorWidget::refresh(int selectedId) {
 
 void NavigatorWidget::setupToolbar() {
   connect(toolbar->addAction("Add"), &QAction::triggered, this, [&]() {
-    if (!assignment) return;
+    // if (!assignment) return;
     auto cmd = std::make_unique<AddTaskCommand>("New Task");
-    int addedId = e->cmdMgr()->execute(std::move(cmd), *assignment);
+    int addedId = e->doc()->execute(std::move(cmd));
     // Task* added = assignment->addTask();
     refresh(addedId);
     emit changed();
   });
 
   connect(toolbar->addAction("Add Image"), &QAction::triggered, this, [&] () {
-    if (!assignment || !tree->currentItem()) return;
-    if (assignment->tasks.size() == 0) return;
-    Task* currentTask = assignment->tasks[tree->indexOfTopLevelItem(tree->currentItem())].get();
+    if (!tree->currentItem()) return;
+    if (e->doc()->data().tasks.size() == 0) return;
+    Task* currentTask = e->doc()->data().tasks[tree->indexOfTopLevelItem(tree->currentItem())].get();
     QString fileName = QFileDialog::getOpenFileName(
       this,
       "Open image",
@@ -83,28 +83,28 @@ void NavigatorWidget::setupToolbar() {
       "PNG Files (*.png);; JPG Files (*.jpg);; JPEG Files (*.jpeg)"
     );
     if (fileName == "") return;
-    assignment->addImage(currentTask, fileName);
+    e->doc()->addImage(currentTask, fileName);
 
     emit changed();
   });
 
   connect(toolbar->addAction("Remove"), &QAction::triggered, this, [&]() {
-    if (!assignment || !tree->currentItem()) return;
+    if (!tree->currentItem()) return;
     int removedId = tree->currentItem()->data(0, Qt::UserRole).toInt();
     int removedIndex = tree->indexOfTopLevelItem(tree->currentItem());
 
     auto cmd = std::make_unique<RemoveTaskCommand>(removedId);
-    e->cmdMgr()->execute(std::move(cmd), *assignment);
+    e->doc()->execute(std::move(cmd));
     
     // assignment->removeTask(removedId);
 
-    if (assignment->tasks.empty()) {
+    if (e->doc()->data().tasks.empty()) {
       emit taskSelected(nullptr);
       refresh(-1);
     } else {
-      int selectIndex = std::min(removedIndex, (int)assignment->tasks.size() - 1);
+      int selectIndex = std::min(removedIndex, (int)e->doc()->data().tasks.size() - 1);
       if (selectIndex < 0) selectIndex = 0;
-      int nextId = assignment->tasks[selectIndex]->id;
+      int nextId = e->doc()->data().tasks[selectIndex]->id;
       refresh(nextId);
     }
 
@@ -113,17 +113,17 @@ void NavigatorWidget::setupToolbar() {
 
   connect(tree, &QTreeWidget::currentItemChanged, [&](QTreeWidgetItem* current, QTreeWidgetItem*) {
     // qDebug() << "Current changed";
-    if (!current || !assignment) return;
+    if (!current) return;
     // qDebug() << "not null";
     int index = tree->indexOfTopLevelItem(current);
     if (index == -1) return;
     // qDebug() << "valid";
-    emit taskSelected(assignment->tasks[index].get());
+    emit taskSelected(e->doc()->data().tasks[index].get());
   });
 
   connect(tree, &TaskTreeWidget::orderChanged, [&]() {
     qDebug() << "MOVED!!!";
-    if (!assignment) return;
+    // if (!assignment) return;
 
     std::vector<int> newOrder;
     for (int i = 0; i < tree->topLevelItemCount(); i++) {
@@ -133,18 +133,18 @@ void NavigatorWidget::setupToolbar() {
     std::vector<std::unique_ptr<Task>> reordered;
     for (int id : newOrder) {
       auto it = std::find_if(
-        assignment->tasks.begin(),
-        assignment->tasks.end(),
+        e->doc()->data().tasks.begin(),
+        e->doc()->data().tasks.end(),
         [id](const auto& t){ return t->id == id; }
       );
-      if (it != assignment->tasks.end()) {
+      if (it != e->doc()->data().tasks.end()) {
         if ((*it)->id == tree->currentItem()->data(0, Qt::UserRole).toInt()) {
           emit taskSelected((*it).get());
         }
         reordered.push_back(std::move(*it));
       }
     }
-    assignment->tasks = std::move(reordered);
+    e->doc()->data().tasks = std::move(reordered);
 
     // std::vector<Task> reordered;
     // for (int i = 0; i < tree->topLevelItemCount(); i++) {
@@ -163,10 +163,10 @@ void NavigatorWidget::setupToolbar() {
 
   connect(tree, &QTreeWidget::itemChanged, [&](QTreeWidgetItem* item, int) {
     if (refreshing) return;
-    if (!assignment) return;
+    // if (!assignment) return;
     int index = tree->indexOfTopLevelItem(item);
     if (index == -1) return;
-    assignment->tasks[index]->title = item->text(0);
+    e->doc()->data().tasks[index]->title = item->text(0);
     emit changed();
   });
 }

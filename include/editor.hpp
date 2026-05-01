@@ -12,67 +12,76 @@
 #include "navigator.hpp"
 #include "page.hpp"
 #include "pagesBridge.hpp"
+#include "documentModel.hpp"
 
 class Editor : public QMainWindow {
   Q_OBJECT
-public:
-  Editor(QWidget* parent = nullptr);
-
-  void undo();
-  void redo();
-
-  void setAssignment(Assignment assignment);
-
-  CommandManager* cmdMgr() { return commandManager; }
-
-public slots:
-  void exportToPdf();
-
-  void updateToDocument(bool softUpdate = true);
-
-private slots:
-  void onTaskSelected(Task* task);
-
 private:
-  void setupMenu();
-  void setupToolbar();
-  void setupCentralWidget();
-  void setupDocks();
+  void logChange(ChangeType t);
 
-  void updateWindowTitle(bool somethingChanged = false);
+public:
+  explicit Editor(QWidget* parent = nullptr);
 
-  void newAssignment();
-  void save();
-  void saveAs();
-  void load();
-  void test();
-
-  void openNameDialog();
+  DocumentModel* doc() const { return mDoc; }
 
 protected:
   void closeEvent(QCloseEvent* event) override;
 
-  QWidget* scrollContainer;
-  QVBoxLayout* scrollLayout;
-  QScrollArea* scrollArea;
-  QTextEdit* docEdit;
-  QListWidget* taskNavigator;
-  QWebEngineView* pagesContainer;
-  PagesBridge* pagesBridge;
+private slots:
+  void onChanged(ChangeType type);
+  void onSaveStateChanged(bool unsaved);
+  // void onFileChanged(const QString& path);
+  void onTaskSelected(Task* task);
 
-  CommandManager* commandManager;
+private:
+  // Setup/window
+  void setupMenu();
+  void setupToolbar();
+  void setupCentralWidget();
+  void setupDocks();
+  void updateWindowTitle();
 
-  MathInputDock* mathDock;
-  NavigatorWidget* navigator;
+  // Save/load
+  void newAssignment();
+  void save();
+  void saveAs();
+  void load();
+  void exportToPdf();
+  void openNameDialog();
 
-  Assignment assignment;
+private:
+  DocumentModel* mDoc;
 
-  QString currentFile = "";
+  PagesBridge* mPagesBridge;
 
-  Task* selectedTask = nullptr;
+  // Widgets
+  QWebEngineView* mPagesContainer;
+  MathInputDock* mMathDock;
+  NavigatorWidget* mNavigator;
 
-  bool mUnsaved = true;
+  Task* mSelectedTask = nullptr;
 
-  std::vector<PageWidget*> pages;
+  // QWidget* scrollContainer;
+  // QVBoxLayout* scrollLayout;
+  // QScrollArea* scrollArea;
+  // QTextEdit* docEdit;
+  // QListWidget* taskNavigator;
+  // QWebEngineView* pagesContainer;
+  // PagesBridge* pagesBridge;
+  //
+  // CommandManager* commandManager;
+  //
+  // MathInputDock* mathDock;
+  // NavigatorWidget* navigator;
+  //
+  // Assignment assignment;
+  //
+  // QString currentFile = "";
+  //
+  // Task* selectedTask = nullptr;
+  //
+  // bool mUnsaved = true;
+  //
+  // std::vector<PageWidget*> pages;
 };
 

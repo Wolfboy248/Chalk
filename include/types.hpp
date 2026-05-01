@@ -1,9 +1,13 @@
 #pragma once
 
+#include "changeType.hpp"
 #include <QString>
 #include <qdebug.h>
 #include <vector>
 #include <memory>
+
+#include <cmd/addTaskCommand.hpp>
+#include <cmd/removeTaskCommand.hpp>
 
 struct Image {
   int id;
@@ -139,118 +143,5 @@ struct Assignment {
 
 private:
   int nextId = 0;
-};
-
-struct Command {
-  virtual ~Command() = default;
-  virtual void undo(Assignment& a) = 0;
-  virtual void redo(Assignment& a) = 0;
-
-  virtual int resultId() const { return -1; }
-};
-
-struct CommandManager {
-  std::vector<std::unique_ptr<Command>> undoStack;
-  std::vector<std::unique_ptr<Command>> redoStack;
-
-  int execute(std::unique_ptr<Command> cmd, Assignment& a) {
-    cmd->redo(a);
-    int result = cmd->resultId();
-    undoStack.push_back(std::move(cmd));
-    redoStack.clear();
-    return result;
-  }
-
-  void undo(Assignment& a) {
-    if (undoStack.empty()) return;
-    auto cmd = std::move(undoStack.back());
-    undoStack.pop_back();
-    cmd->undo(a);
-    redoStack.push_back(std::move(cmd));
-  }
-
-  void redo(Assignment& a) {
-    if (redoStack.empty()) return;
-    auto cmd = std::move(redoStack.back());
-    redoStack.pop_back();
-    cmd->redo(a);
-    undoStack.push_back(std::move(cmd));
-  }
-};
-
-struct AddTaskCommand : Command {
-  QString title;
-  int createdId = -1;
-
-  AddTaskCommand(QString t) : title{std::move(t)} {}
-
-  void redo(Assignment& a) override {
-    auto* t = a.addTask(title);
-    createdId = t->id;
-  }
-
-  void undo(Assignment& a) override {
-    a.removeTask(createdId);
-  }
-
-  int resultId() const override {
-    return createdId;
-  }
-};
-
-struct RemoveTaskCommand : Command {
-  int taskId;
-  std::unique_ptr<Task> backup;
-  int index;
-
-  RemoveTaskCommand(int id) : taskId{id} {}
-
-  void redo(Assignment& a) override {
-    auto& v = a.tasks;
-    auto it = std::find_if(v.begin(), v.end(), [this](const auto& t){ return t->id == taskId; });
-
-    if (it == v.end()) return;
-
-    index = std::distance(v.begin(), it);
-    backup = std::move(*it);
-    v.erase(it);
-  }
-
-  void undo(Assignment& a) override {
-    if (!backup) return;
-    a.tasks.insert(a.tasks.begin() + index, std::move(backup));
-  }
-
-  int resultId() const override {
-    return taskId;
-  }
-};
-
-struct UpdateTaskCommand : Command {
-  int taskId;
-  std::unique_ptr<Task> backup;
-  int index;
-
-  UpdateTaskCommand(int id) : taskId{id} {}
-
-  void redo(Assignment& a) override {
-    auto& v = a.tasks;
-    auto it = std::find_if(v.begin(), v.end(), [this](const auto& t){ return t->id == taskId; });
-
-    if (it == v.end()) return;
-
-    index = std::distance(v.begin(), it);
-    backup = std::move(*it);
-    v.erase(it);
-  }
-
-  void undo(Assignment& a) override {
-    if (!backup) return;
-    a.tasks.insert(a.tasks.begin() + index, std::move(backup));
-  }
-
-  int resultId() const override {
-    return taskId;
-  }
 };
 
