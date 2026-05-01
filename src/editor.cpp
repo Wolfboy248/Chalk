@@ -378,12 +378,13 @@ void Editor::setupDocks() {
   navigator->setMinimumWidth(400);
   navigator->setMaximumWidth(800);
   connect(navigator, &NavigatorWidget::changed, [&]() {
-    updateToDocument();
+    // updateToDocument();
+    pagesBridge->update();
   });
   addDockWidget(Qt::RightDockWidgetArea, navigator);
   resizeDocks({navigator}, {400}, Qt::Horizontal);
 
-  mathDock = new MathInputDock(this);
+  mathDock = new MathInputDock(this, this);
   mathDock->setAssignment(&assignment);
   addDockWidget(Qt::LeftDockWidgetArea, mathDock);
   resizeDocks({mathDock}, {400}, Qt::Horizontal);
@@ -410,6 +411,7 @@ void Editor::setupDocks() {
     &PagesBridge::updatedTaskTitle,
     this,
     [&]() {
+      qDebug() << "Update to document from: pagesBridge updatedTaskTitle";
       updateToDocument();
       // navigator->refresh();
     }
@@ -419,6 +421,7 @@ void Editor::setupDocks() {
     mathDock,
     &MathInputDock::changed,
     [&]() {
+      qDebug() << "Update to document from: mathinput changed";
       updateToDocument();
       // pagesBridge->update();
     }

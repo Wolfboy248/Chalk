@@ -6,10 +6,12 @@
 #include <QJsonObject>
 #include <QJsonDocument>
 
+class Editor;
+
 class Bridge : public QObject {
   Q_OBJECT
 public:
-  explicit Bridge(QObject* parent = nullptr) : QObject(parent) {}
+  explicit Bridge(QObject* parent = nullptr, Editor* editor = nullptr) : QObject(parent), e{editor} {}
 
   QString formula() const { return mFormula; }
 
@@ -34,6 +36,9 @@ public slots:
         f->latex = latex; break;
       }
     }
+
+    // auto cmd = std::make_unique<UpdateTaskCommand>();
+    // int addedId = e->cmdMgr()->execute(std::move(cmd), *assignment);
     emit evaluateTask(taskToJson(mTask));
   }
 
@@ -183,5 +188,7 @@ private:
   QString mFormula;
   Task* mTask = nullptr;
   int nextId = 0;
+
+  Editor* e;
 };
 

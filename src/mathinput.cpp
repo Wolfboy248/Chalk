@@ -3,8 +3,9 @@
 
 #include <QWebChannel>
 #include <QWebEngineView>
+#include "bridge.hpp"
 
-MathInputDock::MathInputDock(QWidget* parent) : QDockWidget("Math Input", parent) {
+MathInputDock::MathInputDock(QWidget* parent, Editor* editor) : QDockWidget("Math Input", parent), e{editor} {
   setAllowedAreas(Qt::AllDockWidgetAreas);
   setFeatures(
     QDockWidget::DockWidgetMovable |
@@ -16,7 +17,7 @@ MathInputDock::MathInputDock(QWidget* parent) : QDockWidget("Math Input", parent
   setMinimumWidth(400);
   setMaximumWidth(800);
 
-  bridge = new Bridge();
+  bridge = new Bridge(this, e);
   QWebChannel* channel = new QWebChannel();
   channel->registerObject("bridge", bridge);
   view->page()->setWebChannel(channel);
@@ -38,21 +39,30 @@ MathInputDock::MathInputDock(QWidget* parent) : QDockWidget("Math Input", parent
   });
 
   connect(bridge, &Bridge::taskChanged, this, [&]() {
-    emit changed();
+    qDebug() << "taskChanged, didnt emit changed";
+    // emit changed();
   });
   connect(bridge, &Bridge::evaluateTask, this, [&]() {
-    emit changed();
+    qDebug() << "evaluateTask, didnt emit changed";
+    // emit changed();
   });
   connect(bridge, &Bridge::resultsReady, this, [&]() {
-    emit changed();
+    qDebug() << "resultsReady, didnt emit changed";
+    // emit changed();
   });
   connect(bridge, &Bridge::updatedExplanation, this, [&]() {
-      emit changed();
+    qDebug() << "updatedExplanation";
+    emit changed();
   });
 
   // connect(bridge, &Bridge::updateFormula, this, [&]() {
   //
   // });
+}
+
+void MathInputDock::setAssignment(Assignment* a) {
+  bridge->setAssignment(a);
+  assignment = a;
 }
 
 void MathInputDock::setTask(Task* task) {
