@@ -5,7 +5,8 @@
 struct AddFormulaCommand : Command {
   int createdId = -1;
   int afterId = -1;
-  Task* t = nullptr;
+  int taskId = -1;
+  // Task* t = nullptr;
 
   AddFormulaCommand(Task* task, int afterId = -1);
   ChangeType changeType() const override;

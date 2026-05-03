@@ -60,6 +60,9 @@ private:
   void exportToPdf();
   void openNameDialog();
 
+  // Helpers
+  void refreshMathDockTask();
+
 private:
   DocumentModel* mDoc;
 
@@ -72,6 +75,7 @@ private:
   HistoryDock* mHistoryDock;
 
   Task* mSelectedTask = nullptr;
+  int selectedTaskId = -1;
 
   // QWidget* scrollContainer;
   // QVBoxLayout* scrollLayout;

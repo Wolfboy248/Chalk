@@ -13,7 +13,10 @@ void RemoveFormulaCommand::redo(Assignment& a) {
     t.end(),
     [this](const auto& t){ return t->id == taskId; }
   );
-  if (tIt == t.end()) return;
+  if (tIt == t.end()) {
+    qDebug() << "Task not found (redo). Id: " + QString::number(taskId);
+    return;
+  }
 
   auto& f = tIt->get()->formulas;
   auto fIt = std::find_if(
@@ -21,7 +24,11 @@ void RemoveFormulaCommand::redo(Assignment& a) {
     f.end(),
     [this](const auto& f){ return f->id == formulaId; }
   );
-  if (fIt == f.end()) return;
+  if (fIt == f.end()) {
+    qDebug() << "Formula not found (redo). TaskId: " + QString::number(taskId) 
+      + ", FormulaId: " + QString::number(formulaId);
+    return;
+  }
 
   index = std::distance(f.begin(), fIt);
   backup = std::move(*fIt);
@@ -36,7 +43,10 @@ void RemoveFormulaCommand::undo(Assignment& a) {
     t.end(),
     [this](const auto& t){ return t->id == taskId; }
   );
-  if (tIt == t.end()) return;
+  if (tIt == t.end()) {
+    qDebug() << "Task not found (undo). Id: " + QString::number(taskId);
+    return;
+  }
 
   auto& f = tIt->get()->formulas;
   f.insert(f.begin() + index, std::move(backup));

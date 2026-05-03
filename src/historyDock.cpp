@@ -48,11 +48,11 @@ void HistoryDock::refresh() {
     totalUndos++;
   }
 
-  for (int i = 0; i < e->doc()->cmdMgr().redoStack.size(); i++) {
+  for (int i = e->doc()->cmdMgr().redoStack.size() - 1; i >= 0; i--) {
     QWidget* itemWidget = new QWidget;
     QVBoxLayout* layout = new QVBoxLayout(itemWidget);
 
-    QLabel* title = new QLabel{"Change #" + QString::number(totalUndos + i) + " (Redo)"};
+    QLabel* title = new QLabel{"Change #" + QString::number(totalUndos) + " (Redo)"};
     title->setStyleSheet("color: gray;");
     // QPalette pal = title->palette();
     // pal.setColor(QPalette::WindowText, Qt::gray);
@@ -76,6 +76,7 @@ void HistoryDock::refresh() {
 
     list->addItem(item);
     list->setItemWidget(item, itemWidget);
+    totalUndos++;
   }
 }
 

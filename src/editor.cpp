@@ -450,3 +450,6 @@ void Editor::openNameDialog() {
   dialog->exec();
 }
 
+void Editor::refreshMathDockTask() {
+}
+
