@@ -21,6 +21,8 @@ public:
 
   void setTask(int id);
 
+  void refresh();
+
   void taskHasChanged();
 
 public slots:
@@ -53,6 +55,8 @@ signals:
   void resultsReady(const QString& json);
 
   void updatedExplanation();
+
+  void refreshed(const QString& json);
 
 private:
   QString taskToJson(Task* task) {

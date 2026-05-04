@@ -8,6 +8,10 @@ void Bridge::receiveLatex(const QString& latex) {
   qDebug() << "Latex: " << latex;
 }
 
+void Bridge::refresh() {
+  emit refreshed(taskToJson(e->doc()->data().getTask(mTaskId)));
+}
+
 void Bridge::addFormula() {
   auto cmd = std::make_unique<AddFormulaCommand>(mTaskId);
   int id = e->doc()->execute(std::move(cmd));
@@ -16,6 +20,7 @@ void Bridge::addFormula() {
   if (!t) return;
 
   emit focusFormula(id);
+  // emit refreshed(taskToJson(t));
   emit taskChanged(taskToJson(t));
 }
 
@@ -26,7 +31,7 @@ void Bridge::addFormulaAfter(int afterId) {
   auto t = e->doc()->data().getTask(id);
   if (!t) return;
   emit focusFormula(id);
-  emit taskChanged(taskToJson(t));
+  // emit taskChanged(taskToJson(t));
 }
 
 void Bridge::removeFormula(int id) {
@@ -35,7 +40,7 @@ void Bridge::removeFormula(int id) {
   auto cmd = std::make_unique<RemoveFormulaCommand>(mTaskId, id);
   e->doc()->execute(std::move(cmd));
 
-  emit taskChanged(taskToJson(e->doc()->data().getTask(mTaskId)));
+  // emit taskChanged(taskToJson(e->doc()->data().getTask(mTaskId)));
 }
 
 void Bridge::setTask(int id) {
@@ -44,7 +49,7 @@ void Bridge::setTask(int id) {
     emit taskChanged("null");
     return;
   };
-  emit taskChanged(taskToJson(e->doc()->data().getTask(id)));
+  // emit taskChanged(taskToJson(e->doc()->data().getTask(id)));
 }
 
 void Bridge::taskHasChanged() {
@@ -52,6 +57,7 @@ void Bridge::taskHasChanged() {
 }
 
 void Bridge::updateFormula(int id, const QString& latex) {
+  if (latex == e->doc()->data().getTask(mTaskId)->getFormula(id)->latex) return;
   qDebug() << "!!! UPDATING FORMULA !!!";
   // if (!mTask) return;
   // for (auto& f : mTask->formulas) {

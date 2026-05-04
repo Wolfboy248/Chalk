@@ -324,6 +324,7 @@ class TaskRenderer {
 
   /** Full diff-and-patch from a new task object received from C++. */
   render(task) {
+    console.log("CALLED RENDER!!!");
     this._task = task;
 
     if (!task) {
@@ -458,6 +459,10 @@ new QWebChannel(qt.webChannelTransport, function(channel) {
   bridge.taskChanged.connect((json) => {
     renderer.render(JSON.parse(json));
   });
+
+  bridge.refreshed.connect((json) => {
+    renderer.update(JSON.parse(json));
+  })
 
   // C++ → JS: focus a specific formula after it was created
   bridge.focusFormula.connect((id) => renderer.focus(id));

@@ -57,7 +57,8 @@ MathInputDock::MathInputDock(QWidget* parent, Editor* editor) : QDockWidget("Mat
 }
 
 void MathInputDock::refresh() {
-  bridge->taskHasChanged();
+  bridge->refresh();
+  // bridge->taskHasChanged();
 }
 
 void MathInputDock::setTask(int id) {
