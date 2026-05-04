@@ -119,6 +119,19 @@ struct Assignment {
     return ptr;
   }
 
+  Task* getTask(int id) {
+    auto& v = tasks;
+    auto it = std::find_if(
+      v.begin(),
+      v.end(),
+      [id](const auto& t){ return t->id == id; }
+    );
+    if (it != v.end()) {
+      return it->get();
+    }
+    return nullptr;
+  }
+
   void removeTask(int id) {
     auto& v = tasks;
     v.erase(

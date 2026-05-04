@@ -42,7 +42,7 @@ private slots:
   void onChanged(ChangeType type);
   void onSaveStateChanged(bool unsaved);
   // void onFileChanged(const QString& path);
-  void onTaskSelected(Task* task);
+  void onTaskSelected(int id);
 
 private:
   // Setup/window
@@ -74,7 +74,7 @@ private:
   NavigatorWidget* mNavigator;
   HistoryDock* mHistoryDock;
 
-  Task* mSelectedTask = nullptr;
+  // Task* mSelectedTask = nullptr;
   int selectedTaskId = -1;
 
   // QWidget* scrollContainer;

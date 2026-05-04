@@ -11,7 +11,7 @@ class MathInputDock : public QDockWidget {
   Q_OBJECT
 public:
   MathInputDock(QWidget* parent = nullptr, Editor* editor = nullptr);
-  void setTask(Task* task);
+  void setTask(int id);
 
   void refresh();
 
@@ -22,7 +22,8 @@ private:
   void onFormulaChange();
 
   Bridge* bridge = nullptr;
-  Task* lastTask = nullptr;
+  int lastTaskId = -1;
+  // Task* lastTask = nullptr;
 
   Editor* e;
 };

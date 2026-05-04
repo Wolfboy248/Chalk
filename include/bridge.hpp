@@ -19,75 +19,22 @@ public:
   //   assignment = a;
   // }
 
-  void setTask(Task* task) {
-    mTask = task;
-    if (!task) {
-      emit taskChanged("null");
-      return;
-    };
-    emit taskChanged(taskToJson(task));
-  }
+  void setTask(int id);
 
-  void taskHasChanged() {
-    taskChanged(taskToJson(mTask));
-  }
+  void taskHasChanged();
 
 public slots:
-  void updateFormula(int id, const QString& latex) {
-    if (!mTask) return;
-    for (auto& f : mTask->formulas) {
-      if (f->id == id) {
-        f->latex = latex; break;
-      }
-    }
+  void updateFormula(int id, const QString& latex);
 
-    // auto cmd = std::make_unique<UpdateTaskCommand>();
-    // int addedId = e->cmdMgr()->execute(std::move(cmd), *assignment);
-    // emit evaluateTask(taskToJson(mTask));
-  }
+  void updateExplanation(int id, const QString& explanation);
 
-  void updateExplanation(int id, const QString& explanation) {
-    if (!mTask) return;
-    for (auto& f : mTask->formulas) {
-      if (f->id == id) { f->explanation = explanation; break; }
-    }
-    emit updatedExplanation();
-  }
+  void updateUnitoverride(int id, const QString& unitOverride);
 
-  void updateUnitoverride(int id, const QString& unitOverride) {
-    if (!mTask) return;
-    for (auto& f : mTask->formulas) {
-      if (f->id == id) { f->unitOverride = unitOverride; break; }
-    }
-    // emit evaluateTask(taskToJson(mTask));
-  }
+  void toggleAnswer(int id);
 
-  void toggleAnswer(int id) {
-    // qDebug() << "OMGOMGOMG";
-    if (!mTask) return;
-    for (auto& f : mTask->formulas) {
-      if (f->id == id) { f->isAnswer = !f->isAnswer; }
-    }
-    emit updatedExplanation();
-  }
+  void toggleHideAnswer(int id);
 
-  void toggleHideAnswer(int id) {
-    // qDebug() << "OMGOMGOMG";
-    if (!mTask) return;
-    for (auto& f : mTask->formulas) {
-      if (f->id == id) { f->hideAnswer = !f->hideAnswer; }
-    }
-    emit updatedExplanation();
-  }
-
-  void toggleIntermediate(int id) {
-    // qDebug() << "OMGOMGOMG";
-    if (!mTask) return;
-    for (auto& f : mTask->formulas) {
-      if (f->id == id) { f->isIntermediate = !f->isIntermediate; }
-    }
-    emit taskChanged(taskToJson(mTask));
-  }
+  void toggleIntermediate(int id);
 
   void addFormulaAfter(int id);
   void addFormula();
@@ -96,26 +43,7 @@ public slots:
 
   void receiveLatex(const QString& latex);
 
-  void receiveResults(const QString& json) {
-    if (!mTask) return;
-    QJsonArray results = QJsonDocument::fromJson(json.toUtf8()).array();
-    for (const auto& r : results) {
-      QJsonObject obj = r.toObject();
-      int id = obj["id"].toInt();
-      QString result = obj["result"].toString();
-      QString error = obj["error"].toString();
-      for (auto& f : mTask->formulas) {
-        if (f->id == id) {
-          f->result = result; 
-          f->error = error;
-          // qDebug() << f->latex << " == " << f->result;
-          break;
-        }
-      }
-    }
-
-    emit resultsReady(taskToJson(mTask));
-  }
+  void receiveResults(const QString& json);
 
 signals:
   void taskChanged(const QString& json);
@@ -162,7 +90,8 @@ private:
 
   // Assignment* assignment;
   QString mFormula;
-  Task* mTask = nullptr;
+  // Task* mTask = nullptr;
+  int mTaskId = -1;
   int nextId = 0;
 
   Editor* e;

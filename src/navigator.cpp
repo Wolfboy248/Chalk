@@ -55,7 +55,7 @@ void NavigatorWidget::refresh(int selectedId) {
     if (selectedId != -1 && selectedId == task->id) {
       item->setSelected(true);
       tree->setCurrentItem(item);
-      emit taskSelected(e->doc()->data().tasks[i].get());
+      emit taskSelected(e->doc()->data().tasks[i]->id);
     }
   }
 
@@ -99,7 +99,7 @@ void NavigatorWidget::setupToolbar() {
     // assignment->removeTask(removedId);
 
     if (e->doc()->data().tasks.empty()) {
-      emit taskSelected(nullptr);
+      emit taskSelected(-1);
       refresh(-1);
     } else {
       int selectIndex = std::min(removedIndex, (int)e->doc()->data().tasks.size() - 1);
@@ -118,7 +118,7 @@ void NavigatorWidget::setupToolbar() {
     int index = tree->indexOfTopLevelItem(current);
     if (index == -1) return;
     // qDebug() << "valid";
-    emit taskSelected(e->doc()->data().tasks[index].get());
+    emit taskSelected(e->doc()->data().tasks[index]->id);
   });
 
   connect(tree, &TaskTreeWidget::orderChanged, [&]() {
@@ -139,7 +139,7 @@ void NavigatorWidget::setupToolbar() {
       );
       if (it != e->doc()->data().tasks.end()) {
         if ((*it)->id == tree->currentItem()->data(0, Qt::UserRole).toInt()) {
-          emit taskSelected((*it).get());
+          emit taskSelected((*it)->id);
         }
         reordered.push_back(std::move(*it));
       }

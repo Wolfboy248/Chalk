@@ -35,7 +35,7 @@ MathInputDock::MathInputDock(QWidget* parent, Editor* editor) : QDockWidget("Mat
 #endif
 
   connect(view, &QWebEngineView::loadFinished, bridge, [&]() {
-    bridge->setTask(lastTask);
+    bridge->setTask(lastTaskId);
   });
 
   connect(bridge, &Bridge::taskChanged, this, [&]() {
@@ -60,8 +60,8 @@ void MathInputDock::refresh() {
   bridge->taskHasChanged();
 }
 
-void MathInputDock::setTask(Task* task) {
-  bridge->setTask(task);
-  lastTask = task;
+void MathInputDock::setTask(int id) {
+  bridge->setTask(id);
+  lastTaskId = id;
 }
 

@@ -104,6 +104,7 @@ void Editor::closeEvent(QCloseEvent* event) {
 
 // Supa importante funktion. All changes should go through here.
 void Editor::onChanged(ChangeType type) {
+  qDebug() << "On change";
   logChange(type);
   logAssignment(mDoc->data());
   mHistoryDock->refresh();
@@ -112,6 +113,7 @@ void Editor::onChanged(ChangeType type) {
     case ChangeType::Structure:
       mPagesBridge->update();
       mNavigator->refresh();
+      // mMathDock->refresh();
       break;
 
     case ChangeType::Content:
@@ -136,10 +138,14 @@ void Editor::onSaveStateChanged(bool unsaved) {
   updateWindowTitle();
 }
 
-void Editor::onTaskSelected(Task* task) {
-  mSelectedTask = task;
-  mMathDock->setTask(task);
-  mPagesBridge->scrollToTask(task);
+void Editor::onTaskSelected(int id) {
+  if (id == -1) {
+    mMathDock->setTask(-1);
+    mDoc->selectedTaskChanged();
+  }
+  // mSelectedTask = task;
+  mMathDock->setTask(id);
+  mPagesBridge->scrollToTask(mDoc->data().getTask(id));
   mDoc->selectedTaskChanged();
 }
 

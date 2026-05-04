@@ -2,8 +2,8 @@
 
 #include <types.hpp>
 
-AddFormulaCommand::AddFormulaCommand(Task* task, int aId)
-  : taskId{task->id}, afterId{aId} {}
+AddFormulaCommand::AddFormulaCommand(int taskId, int aId)
+  : taskId{taskId}, afterId{aId} {}
 
 ChangeType AddFormulaCommand::changeType() const {
   return ChangeType::Content;
@@ -44,7 +44,7 @@ void AddFormulaCommand::undo(Assignment& a) {
     qDebug() << "AddFormulaCommand::undo: task not found. Id: " + QString::number(taskId);
     return;
   }
-  // a.removeFormula(it->get(), createdId);
+  a.removeFormula(it->get(), createdId);
   //
   // qDebug() << "New formula getting undone (removeFormula)";
   // a.removeFormula(t, createdId);

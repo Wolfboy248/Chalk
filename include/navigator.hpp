@@ -21,7 +21,7 @@ public:
 
 signals:
   void changed();
-  void taskSelected(Task* task);
+  void taskSelected(int id);
 private:
   void setupToolbar();
 
