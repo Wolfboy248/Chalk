@@ -12,6 +12,7 @@
 #include <cmd/updateAssignmentTitleCommand.hpp>
 #include <cmd/addFormulaCommand.hpp>
 #include <cmd/removeFormulaCommand.hpp>
+#include <cmd/updateFormulaCommand.hpp>
 
 struct Image {
   int id;
@@ -38,6 +39,19 @@ struct Task {
   std::vector<std::unique_ptr<Image>> images;
 
   Task() = default;
+
+  Formula* getFormula(int id) {
+    auto& v = formulas;
+    auto it = std::find_if(
+      v.begin(),
+      v.end(),
+      [id](const auto& t){ return t->id == id; }
+    );
+    if (it != v.end()) {
+      return it->get();
+    }
+    return nullptr;
+  }
 
   Task(const Task& other) {
     id = other.id;

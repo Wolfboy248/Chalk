@@ -402,6 +402,7 @@ class TaskRenderer {
     const bridge = this._bridge;
     return {
       onSave: (id, latex) => {
+        console.error("onSave");
         bridge.updateFormula(id, latex);
         // Keep local task in sync so _evaluate() always sees current latex
         const f = this._task?.formulas.find(f => f.id === id);

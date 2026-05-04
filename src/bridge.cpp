@@ -52,6 +52,7 @@ void Bridge::taskHasChanged() {
 }
 
 void Bridge::updateFormula(int id, const QString& latex) {
+  qDebug() << "!!! UPDATING FORMULA !!!";
   // if (!mTask) return;
   // for (auto& f : mTask->formulas) {
   //   if (f->id == id) {
@@ -59,8 +60,8 @@ void Bridge::updateFormula(int id, const QString& latex) {
   //   }
   // }
 
-  // auto cmd = std::make_unique<UpdateTaskCommand>();
-  // int addedId = e->cmdMgr()->execute(std::move(cmd), *assignment);
+  auto cmd = std::make_unique<UpdateFormulaCommand>(mTaskId, id, latex);
+  int addedId = e->doc()->execute(std::move(cmd));
   // emit evaluateTask(taskToJson(mTask));
 }
 
