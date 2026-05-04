@@ -104,9 +104,9 @@ void Editor::closeEvent(QCloseEvent* event) {
 
 // Supa importante funktion. All changes should go through here.
 void Editor::onChanged(ChangeType type) {
-  qDebug() << "On change";
-  logChange(type);
-  logAssignment(mDoc->data());
+  // qDebug() << "On change";
+  // logChange(type);
+  // logAssignment(mDoc->data());
   mHistoryDock->refresh();
   switch (type) {
     // Full re-render

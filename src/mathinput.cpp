@@ -1,6 +1,9 @@
 #include <filesystem>
 #include <mathinput.hpp>
 
+#include <QEvent>
+#include <QApplication>
+
 #include <QWebChannel>
 #include <QWebEngineView>
 #include "bridge.hpp"
@@ -38,22 +41,20 @@ MathInputDock::MathInputDock(QWidget* parent, Editor* editor) : QDockWidget("Mat
     bridge->setTask(lastTaskId);
   });
 
-  connect(bridge, &Bridge::taskChanged, this, [&]() {
-    qDebug() << "taskChanged, didnt emit changed";
-    // emit changed();
+  connect(qApp, &QApplication::focusChanged, this, [this](QWidget* old, QWidget* now) {
+    if (old && this->isAncestorOf(old) && (!now || !this->isAncestorOf(now))) {
+      bridge->lostWindowFocus(); 
+    }
   });
-  // connect(bridge, &Bridge::evaluateTask, this, [&]() {
-  //   qDebug() << "evaluateTask, didnt emit changed";
-  //   // emit changed();
-  // });
-  connect(bridge, &Bridge::resultsReady, this, [&]() {
-    qDebug() << "resultsReady, didnt emit changed";
-    // emit changed();
-  });
-  connect(bridge, &Bridge::updatedExplanation, this, [&]() {
-    qDebug() << "updatedExplanation";
-    emit changed();
-  });
+}
+
+bool MathInputDock::eventFilter(QObject* watched, QEvent* event) {
+  qDebug() << "OMG!!!";
+  if (event->type() == QEvent::FocusOut) {
+    qDebug() << "FOCUSOUT!!";
+    bridge->lostWindowFocus();
+  }
+  return QDockWidget::eventFilter(watched, event);
 }
 
 void MathInputDock::refresh() {

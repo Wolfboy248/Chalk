@@ -13,6 +13,7 @@
 #include <cmd/addFormulaCommand.hpp>
 #include <cmd/removeFormulaCommand.hpp>
 #include <cmd/updateFormulaCommand.hpp>
+#include <cmd/toggleAnswerCommand.hpp>
 
 struct Image {
   int id;

@@ -15,7 +15,7 @@ textarea {
   padding: 8px;
 }
 
-.buttons-container > .btn {
+.buttons-container > .btn, .btn {
   border: none;
   font-size: 16px;
   padding: 6px 0;

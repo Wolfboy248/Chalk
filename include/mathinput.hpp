@@ -15,6 +15,9 @@ public:
 
   void refresh();
 
+protected:
+  bool eventFilter(QObject* watched, QEvent* event) override;
+
 signals:
   void changed();
 
