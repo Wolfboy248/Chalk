@@ -34,11 +34,20 @@ class FormulaRow {
 
     this.element.append(mqSpan, this.toggleBtn, removeBtn);
 
+    console.log(initialData.latex);
+
+    MQ.config({
+      macros: {
+        R: '\\mathbb{R}'
+      }
+    })
+
     this.mf = MQ.MathField(mqSpan, {
       handlers: {
         edit: () => {
           if (this.isInternalChange) return;
-          debounce(this.hooks.onUpdate(this.id, this.mf.latex()));
+          console.log("OMG!!");
+          this.hooks.onUpdate(this.id, this.mf.latex())
         },
         enter: () => this.hooks.onAddAfter(this.id)
       }
@@ -48,11 +57,14 @@ class FormulaRow {
   }
 
   update(fData) {
+    // console.log(fData.latex, this.mf.latex());
     // Only update if the user isn't currently typing in this specific field
     if (document.activeElement !== this.mqArea && this.mf.latex() !== fData.latex) {
       this.isInternalChange = true;
       this.mf.latex(fData.latex);
       this.isInternalChange = false;
+    } else {
+      console.log(fData.latex, this.mf.latex());
     }
 
     this.toggleBtn.classList.toggle("active", fData.isAnswer);

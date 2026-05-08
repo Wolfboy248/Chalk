@@ -11,13 +11,17 @@ ChangeType UpdateFormulaCommand::changeType() const {
 
 void UpdateFormulaCommand::redo(Assignment& a) {
   auto t = a.getTask(taskId);
-  if (t) {
-    auto f = t->getFormula(formulaId);
-    if (f) {
-      oldLatex = f->latex;
-      f->latex = newLatex;
-    }
+  if (!t) return;
+
+  auto f = t->getFormula(formulaId);
+  if (!f) return;
+
+  if (!initialized) {
+    oldLatex = f->latex;
+    initialized = true;
   }
+
+  f->latex = newLatex;
 }
 
 void UpdateFormulaCommand::undo(Assignment& a) {

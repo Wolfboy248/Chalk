@@ -107,7 +107,7 @@ void Editor::onChanged(ChangeType type) {
   // qDebug() << "On change";
   // logChange(type);
   // logAssignment(mDoc->data());
-  mHistoryDock->refresh();
+  // mHistoryDock->refresh();
   switch (type) {
     // Full re-render
     case ChangeType::Structure:

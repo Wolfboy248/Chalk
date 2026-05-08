@@ -7,6 +7,7 @@ struct UpdateFormulaCommand : Command {
   QString oldLatex;
   int taskId = -1;
   int formulaId = -1;
+  bool initialized = false;
 
   UpdateFormulaCommand(int id, int fId, QString latex);
   ChangeType changeType() const override;
