@@ -124,7 +124,7 @@ class TaskRenderer {
 
   blurAll() {
     if (document.activeElement) {
-      document.activeElement.blur();
+      // document.activeElement.blur();
     }
   }
 }
